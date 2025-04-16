@@ -1,0 +1,327 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model clien {
+  cliente        Int     @id
+  vend           Int?
+  nombre_cliente String? @db.VarChar(30)
+  direccion      String? @db.VarChar(30)
+  c_postal       Int?
+  localidad      String? @db.VarChar(15)
+  depto          Int?
+  telefono       String? @db.VarChar(15)
+  ruc            String? @db.VarChar(15)
+  envio          Int?
+  f_pago         Int?
+  lista          String? @db.VarChar(2)
+  des_fact       Int?
+  desc_rec       Int?
+  tope_cred      Int?
+  cred_usado     Int?
+  siglo_ult_vta  Int?
+  f_ult_vta      Int?
+  observaciones  String? @db.VarChar(40)
+  param1         Int?
+  param2         Int?
+  res_1          Int?
+  res_2          String? @db.VarChar(1)
+  res_3          String? @db.VarChar(30)
+  res_4          String? @db.VarChar(50)
+
+  @@map("clien")
+}
+
+model clientes {
+  clicod    String  @id @db.VarChar(50)
+  clicodbit String?
+  clinom    String? @db.VarChar(127)
+  cliruc    String? @db.VarChar(50)
+  clirazsoc String? @db.VarChar(127)
+  clidir    String? @db.VarChar(255)
+  cliest    Boolean
+
+  @@map("clientes")
+}
+
+model configuraciones {
+  fldname      String  @id @db.VarChar(50)
+  lnglbl       String? @db.VarChar(50)
+  shtlbl       String? @db.VarChar(50)
+  fldtype      Int?
+  tbase        String? @db.VarChar(50)
+  fbase        String? @db.VarChar(50)
+  boundcolumn  Int?
+  columncount  Int?
+  columnwidths String? @db.VarChar(50)
+  orderby      String? @db.VarChar(255)
+  sql          String?
+
+  @@map("configuraciones")
+}
+
+model estados {
+  estcod Int    @id
+  estnom String @db.VarChar(50)
+
+  @@map("estados")
+}
+
+model formatoinformes {
+  nombre         String  @id @db.VarChar(50)
+  id_informe     Int?
+  predeterminado Boolean
+  recordsource   String? @db.VarChar(50)
+  titulo         String? @db.VarChar(100)
+  contador       String? @db.VarChar(50)
+  agrupar1       Boolean
+  agrupar2       Boolean
+  orden1         String? @db.VarChar(50)
+  orden2         String? @db.VarChar(50)
+  btnorden1      Boolean
+  btnorden2      Boolean
+  listacampos    String?
+
+  @@map("formatoinformes")
+}
+
+model id3728365jpdc {
+  id String @id @db.VarChar(50)
+
+  @@map("id3728365jpdc")
+}
+
+model monedas {
+  moncod Int     @id
+  monnom String? @db.VarChar(50)
+  monabr String? @db.VarChar(3)
+
+  @@map("monedas")
+}
+
+model ordenes {
+  ordcod    Int      @id
+  vendcod   Int
+  clicod    Int?
+  clidir    String   @db.VarChar(255)
+  ordfec    DateTime
+  ordfecpro DateTime
+  ordmar    String?  @db.VarChar(63)
+  ordequ    String?  @db.VarChar(63)
+  ordnumtal String?  @db.VarChar(50)
+  ordmat    String?  @db.VarChar(50)
+  ordarmpor Int?
+  ordins    Boolean
+  ordent    Boolean
+  ordace    Boolean
+  estcod    Int
+  ordvia    Int?
+  ordnumfac Int?
+  ordnumrem Int?
+  ordretcli Boolean
+  ordretdec Boolean
+  ordentven Boolean
+  ordobs    String?
+  ordcos    Float?
+  ordmon    Float?
+  moncod    Int?
+  pagocod   Int?
+  ordcom    Float?
+  ordrev    Boolean
+  ordinstec Boolean
+
+  // cliente   clientes? @relation(fields: [clicod], references: [clicod])
+  // estado    estados   @relation(fields: [estcod], references: [estcod])
+  // moneda    monedas?  @relation(fields: [moncod], references: [moncod])
+  // pago      pagos?    @relation(fields: [pagocod], references: [pagocod])
+
+  @@map("ordenes")
+}
+
+model msyscompacterror {
+  errorcode        Int     @id
+  errordescription String?
+  errortable       String? @db.VarChar(255)
+  errorrecid       Bytes?
+
+  // @@id([errorcode, errortable])
+  @@map("msyscompacterror")
+}
+
+model pagos {
+  pagocod Int     @id
+  pagonom String? @db.VarChar(50)
+  pagocom Float?
+
+  @@map("pagos")
+}
+
+model prefijos {
+  precod Int     @id
+  predes String? @db.VarChar(100)
+
+  @@map("prefijos")
+}
+
+model productos {
+  prodcod    String @id @db.VarChar(50)
+  prodnom    String @db.VarChar(250)
+  tipprodcod String? @db.VarChar(50)
+
+  @@map("productos")
+}
+
+model proveedores {
+  provcod String  @id @db.VarChar(50)
+  provnom String? @db.VarChar(50)
+
+  @@map("proveedores")
+}
+
+model stock {
+  articulo        String  @id @db.VarChar(10)
+  grupo           Int?
+  tipo            Int?
+  nombre_articulo String? @db.VarChar(50)
+  articulo_edit   String? @db.VarChar(12)
+  prov            Int?
+  param1          String? @db.VarChar(1)
+  param2          String? @db.VarChar(1)
+  precio1         Int?
+  precio2         Int?
+  precio3         Int?
+  neto1           String? @db.VarChar(1)
+  neto2           String? @db.VarChar(1)
+  neto3           String? @db.VarChar(1)
+  iva             Int?
+  compmes_u       Int?
+  compmes_v       Int?
+  ventmes_u       Int?
+  ventmes_v       Int?
+  compacu_u       Int?
+  compacu_v       Int?
+  ventacu_u       Int?
+  ventacu_v       Int?
+  siglo_ult_vta   Int?
+  f_ult_vta       Int?
+  siglo_ult_com   Int?
+  f_ult_com       Int?
+  costo_prom      Int?
+  costo_repos     Int?
+  siglo_repos     Int?
+  f_repos         Int?
+  res_1           Int?
+  siglo_uc1       Int?
+  fecha_uc1       Int?
+  cant_uc1        Int?
+  costo_uc1       Int?
+  dto_uc1         Int?
+  prov_uc1        Int?
+  siglo_uc2       Int?
+  fecha_uc2       Int?
+  cant_uc2        Int?
+  costo_uc2       Int?
+  dto_uc2         Int?
+  prov_uc2        Int?
+  siglo_uc3       Int?
+  fecha_uc3       Int?
+  cant_uc3        Int?
+  costo_uc3       Int?
+  dto_uc3         Int?
+  prov_uc3        Int?
+  siglo_uc4       Int?
+  fecha_uc4       Int?
+  cant_uc4        Int?
+  costo_uc4       Int?
+  dto_uc4         Int?
+  prov_uc4        Int?
+  siglo_uv1       Int?
+  fecha_uv1       Int?
+  cant_uv1        Int?
+  precio_uv1      Int?
+
+  @@map("stock")
+}
+
+model tipoproductos {
+  tipprodcod String     @id @db.VarChar(50)
+  tipprodgru Int?
+  tipprodnom String? @db.VarChar(50)
+  tipprodimp Boolean
+
+  @@map("tipoproductos")
+}
+
+model tipousuarios {
+  tipusucod Int     @id
+  tipusunom String? @db.VarChar(50)
+
+  @@map("tipousuarios")
+}
+
+model usuarios {
+  usucod    Int    @id
+  usunom    String @db.VarChar(50)
+  usucla    String @db.VarChar(50)
+  tipusucod Int
+
+  @@map("usuarios")
+}
+
+model vendedores {
+  vendcod Int     @id
+  vendnom String? @db.VarChar(50)
+  vendmai String? @db.VarChar(100)
+  usucod  Int?
+
+  @@map("vendedores")
+}
+
+model historialestados {
+  hiscod Int       @id
+  ordcod Int?
+  estcod Int?
+  usucod Int
+  hisfec DateTime?
+
+  @@map("historialestados")
+}
+
+model ordenesproductos {
+  ordprodcod     Int     @id
+  ordcod         Int
+  prodcod        Int
+  ordprodcon     String? @db.VarChar(255)
+  ordprodcan     Int?
+  provcod        Int
+  ordprodlle     Boolean
+  ordprodnumfac  Int?
+  ordprodpre     Float?
+  ordprodprereal Float?
+
+  // orden    ordenes     @relation(fields: [ordcod], references: [ordcod])
+  // producto productos   @relation(fields: [prodcod], references: [prodcod])
+  // proveedor proveedores @relation(fields: [provcod], references: [provcod])
+
+  @@map("ordenesproductos")
+}
+
+model tipos {
+  tipo        Int
+  grupo       Int
+  nombre_tipo String? @db.VarChar(50)
+
+  @@id([tipo, grupo])
+  @@map("tipos")
+}

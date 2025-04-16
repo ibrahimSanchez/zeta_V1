@@ -1,7 +1,7 @@
 export type AuthJwtPayload = {
   userData: {
     id: number
-    userName: user.userName,
+    userName: string,
     role: string
   }
 };

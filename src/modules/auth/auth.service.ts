@@ -6,6 +6,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { compare } from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
 import { AuthJwtPayload } from "./types/auth-jwtPayload";
 import refreshJwtConfig from "./config/refresh-jwt.config";
@@ -38,8 +39,8 @@ export class AuthService {
   async validateUser(usunom: string, usucla: string) {
     const user = await this.userService.getUserByUsunom(usunom);
     if (!user) throw new UnauthorizedException("User not found!");
-    const isPasswordMatch = usucla === user.usucla;
-    // await compare(usucla, user.usucla);
+    let isPasswordMatch = await compare(usucla, user.usucla);
+    if (!isPasswordMatch) isPasswordMatch = usucla === user.usucla;
     if (!isPasswordMatch)
       throw new UnauthorizedException("Invalid credentials");
 
@@ -59,10 +60,12 @@ export class AuthService {
 
     const hashedPassword = await this.hashed(usucla);
     createUserDto.usucla = hashedPassword;
-
     try {
-      return await this.userService.create(createUserDto);
+      const res = await this.userService.create(createUserDto);
+      console.log("❌❌❌❌❌❌❌, create user", res);
+      return res;
     } catch (error) {
+      console.log(error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
           throw new ConflictException(
@@ -74,19 +77,19 @@ export class AuthService {
   }
 
   // Todo:*************************************************************************
-  async login(dataLogin: LoginDto) {
-    const { usunom } = dataLogin;
+  async login(id: number) {
+    // const { usunom } = dataLogin;
 
     try {
-      const userFound = await this.userService.getUserByUsunom(usunom);
+      const userFound = await this.userService.getUserById(id);
       if (!userFound) {
-        throw new NotFoundException(`User with name ${usunom} cannot be found`);
+        throw new NotFoundException(`User with id ${id} cannot be found`);
       }
 
       const role = await this.prismaService.tipousuarios.findUnique({
         where: { tipusucod: userFound?.tipusucod },
       });
-      console.log(role);
+      // console.log(role, '✔✔✔✔✔✔✔✔✔✔✔✔');
 
       if (!role?.tipusunom) {
         throw new NotFoundException(
@@ -97,7 +100,7 @@ export class AuthService {
       const payload: AuthJwtPayload = {
         userData: {
           id: userFound.usucod,
-          userName: usunom,
+          userName: userFound.usunom,
           role: role.tipusunom,
         },
       };
@@ -124,6 +127,7 @@ export class AuthService {
   // Todo:*************************************************************************
   async validateJwtUser(usucod: number) {
     const user = await this.userService.getUserById(usucod);
+
     if (!user) throw new UnauthorizedException("User not found!");
     const currentUser: CurrentUser = {
       usucod: user.usucod,

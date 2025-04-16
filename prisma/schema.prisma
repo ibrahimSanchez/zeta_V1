@@ -272,8 +272,8 @@ model tipousuarios {
 
 model usuarios {
   usucod    Int    @id
-  usunom    String @db.VarChar(50)
-  usucla    String @db.VarChar(50)
+  usunom    String @db.VarChar(250)
+  usucla    String @db.VarChar(250)
   tipusucod Int
 
   @@map("usuarios")

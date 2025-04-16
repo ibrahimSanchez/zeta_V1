@@ -12,6 +12,7 @@ import googleOauthConfig from "./config/google-oauth.config";
 import { UsersService } from "src/modules/users/users.service";
 import { PrismaService } from "src/modules/prisma/prisma.service";
 import { LocalStrategy } from "./strategies/local.strategy";
+import { JwtStrategy } from "./strategies/jwt.strategy";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { LocalStrategy } from "./strategies/local.strategy";
     AuthService,
     UsersService,
     LocalStrategy,
+    JwtStrategy,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, //@UseGuards(JwtAuthGuard) applied on all API endppints

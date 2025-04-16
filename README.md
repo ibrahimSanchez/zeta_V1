@@ -32,6 +32,42 @@
 $ npm install
 ```
 
+## Environment Configuration
+
+### Setting Up `.env` File
+
+1. Create the file in your project root:
+```bash
+touch .env
+
+PORT
+ORIGIN_CORS
+
+DATABASE_URL
+
+SECRETORPRIVATEKEY
+JWT_EXPIRE_IN
+
+CLOUD_NAME
+API_KEY
+API_SECRET
+
+DESARROLLADOR_CODIGO
+DESARROLLADOR_CLAVE
+EMPRESA_CODIGO
+EMPRESA_CLAVE
+USUARIO_CODIGO
+USUARIO_CLAVE
+ROL_CODIGO
+```
+
+2. Add to .gitignore:
+```
+.env
+*.env
+```
+
+
 ## Compile and run the project
 
 ```bash

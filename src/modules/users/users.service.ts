@@ -30,19 +30,18 @@ export class UsersService {
 
   // Todo:*************************************************************************
   async getAllUsers() {
-  try {
-    const allUsers = await this.prismaService.usuarios.findMany({
-      select: {
-        usunom: true,
-      },
-    });
+    try {
+      const allUsers = await this.prismaService.usuarios.findMany({
+        select: {
+          usunom: true,
+        },
+      });
 
-    return allUsers;
-  } catch (error) {
-    throw new NotFoundException();
+      return allUsers;
+    } catch (error) {
+      throw new NotFoundException();
+    }
   }
-}
-
 
   // Todo:*************************************************************************
   async getUserById(usucod: number) {
@@ -55,7 +54,6 @@ export class UsersService {
     }
   }
 
-
   // Todo:*************************************************************************
   async getUserByUsunom(usunom: string) {
     try {
@@ -67,4 +65,16 @@ export class UsersService {
     }
   }
 
+  // Todo:*************************************************************************
+  async getUserTypeByTipusucod(tipusucod: number) {
+    try {
+      const userType = await this.prismaService.tipousuarios.findUnique({
+        where: { tipusucod },
+      });
+
+      return userType?.tipusunom;
+    } catch (error) {
+      throw new BadRequestException("An error has occurred");
+    }
+  }
 }

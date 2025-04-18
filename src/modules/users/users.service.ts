@@ -3,10 +3,13 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "src/modules/prisma/prisma.service";
 import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { Prisma, usuarios } from "@prisma/client";
 
 @Injectable()
 export class UsersService {
@@ -19,6 +22,11 @@ export class UsersService {
     try {
       return await this.prismaService.usuarios.create({
         data: { usunom, usucla, tipusucod, usucod },
+        select: {
+          usucod: true,
+          usunom: true,
+          tipusucod: true,
+        },
       });
     } catch (error) {
       throw new HttpException(
@@ -34,6 +42,8 @@ export class UsersService {
       const allUsers = await this.prismaService.usuarios.findMany({
         select: {
           usunom: true,
+          usucod: true,
+          tipusucod: true,
         },
       });
 
@@ -48,6 +58,11 @@ export class UsersService {
     try {
       return await this.prismaService.usuarios.findUnique({
         where: { usucod },
+        select: {
+          usucod: true,
+          usunom: true,
+          tipusucod: true,
+        },
       });
     } catch (error) {
       throw new BadRequestException("An error has occurred");
@@ -70,11 +85,58 @@ export class UsersService {
     try {
       const userType = await this.prismaService.tipousuarios.findUnique({
         where: { tipusucod },
+        select: {
+          tipusucod: true,
+          tipusunom: true,
+        },
       });
 
       return userType?.tipusunom;
     } catch (error) {
       throw new BadRequestException("An error has occurred");
+    }
+  }
+
+  //todo: *********************************************************************************
+  async updateUser(usucod: number, updateUserDto: UpdateUserDto) {
+    try {
+      return await this.prismaService.usuarios.update({
+        where: { usucod },
+        data: updateUserDto,
+        select: {
+          usucod: true,
+          usunom: true,
+          tipusucod: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundException(`User with code ${usucod} not found`);
+        }
+        throw new BadRequestException("Invalid user data");
+      }
+      throw new InternalServerErrorException("Failed to update user");
+    }
+  }
+
+  async deleteUser(usucod: number) {
+    try {
+      return await this.prismaService.usuarios.delete({
+        where: { usucod },
+        select: {
+          usucod: true,
+          usunom: true,
+          tipusucod: true,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundException(`User with code ${usucod} not found`);
+        }
+      }
+      throw new InternalServerErrorException("Failed to update user");
     }
   }
 }

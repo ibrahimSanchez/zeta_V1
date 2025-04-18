@@ -12,7 +12,6 @@ import { AuthService } from "./auth.service";
 import { LocalAuthGuard } from "./guards/local-auth/local-auth.guard";
 import { Public } from "./decorators/public.decorator";
 import { CreateUserDto } from "src/modules/users/dto/create-user.dto";
-import { LoginDto } from "./dto/login.dto";
 import { Response } from "express";
 import { TOKEN_NAME } from "src/constants/key-decorators";
 

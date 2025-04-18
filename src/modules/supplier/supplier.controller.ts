@@ -13,7 +13,7 @@ import { Public } from "src/modules/auth/decorators/public.decorator";
 import { UpdateSupplierDto } from "./dto/update-supplier.dto";
 import { CreateSupplierDto } from "./dto/create-supplier.dto";
 
-@Controller("supplier")
+@Controller("suppliers")
 export class SupplierController {
   constructor(private readonly supplierService: SupplierService) {}
 

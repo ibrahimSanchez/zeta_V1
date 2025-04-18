@@ -6,7 +6,6 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { compare } from "bcrypt";
 import { JwtService } from "@nestjs/jwt";
 import { AuthJwtPayload } from "./types/auth-jwtPayload";
 import refreshJwtConfig from "./config/refresh-jwt.config";
@@ -14,9 +13,9 @@ import { ConfigType } from "@nestjs/config";
 import { CurrentUser } from "./types/current-user";
 import { UsersService } from "src/modules/users/users.service";
 import { CreateUserDto } from "src/modules/users/dto/create-user.dto";
+import { compare } from "bcrypt";
 import * as bcrypt from "bcrypt";
 import { Prisma } from "@prisma/client";
-import { LoginDto } from "./dto/login.dto";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
@@ -51,19 +50,17 @@ export class AuthService {
   async signUp(createUserDto: CreateUserDto) {
     const { usucla, usunom } = createUserDto;
 
-    const foundUser = await this.userService.getUserByUsunom(usunom);
-
-    if (foundUser)
-      throw new ConflictException(
-        `The user with the email: ${usunom} already exists.`,
-      );
-
-    const hashedPassword = await this.hashed(usucla);
-    createUserDto.usucla = hashedPassword;
     try {
-      const res = await this.userService.create(createUserDto);
-      console.log("❌❌❌❌❌❌❌, create user", res);
-      return res;
+      const foundUser = await this.userService.getUserByUsunom(usunom);
+
+      if (foundUser)
+        throw new ConflictException(
+          `The user with the email: ${usunom} already exists.`,
+        );
+
+      const hashedPassword = await this.hashed(usucla);
+      createUserDto.usucla = hashedPassword;
+      return await this.userService.create(createUserDto);
     } catch (error) {
       console.log(error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -78,7 +75,6 @@ export class AuthService {
 
   // Todo:*************************************************************************
   async login(id: number) {
-    // const { usunom } = dataLogin;
 
     try {
       const userFound = await this.userService.getUserById(id);
@@ -89,7 +85,6 @@ export class AuthService {
       const role = await this.prismaService.tipousuarios.findUnique({
         where: { tipusucod: userFound?.tipusucod },
       });
-      // console.log(role, '✔✔✔✔✔✔✔✔✔✔✔✔');
 
       if (!role?.tipusunom) {
         throw new NotFoundException(

@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   validate(payload: AuthJwtPayload) {
-    const usucod = payload.userData.id;
+    const usucod = payload.userData.userCode;
     return this.authService.validateJwtUser(usucod);
   }
 }

@@ -94,7 +94,7 @@ export class AuthService {
 
       const payload: AuthJwtPayload = {
         userData: {
-          id: userFound.usucod,
+          userCode: userFound.usucod,
           userName: userFound.usunom,
           role: role.tipusunom,
         },

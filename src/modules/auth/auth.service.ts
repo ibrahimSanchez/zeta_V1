@@ -82,21 +82,21 @@ export class AuthService {
         throw new NotFoundException(`User with id ${id} cannot be found`);
       }
 
-      const role = await this.prismaService.tipousuarios.findUnique({
-        where: { tipusucod: userFound?.tipusucod },
-      });
+      // const role = await this.prismaService.tipousuarios.findUnique({
+      //   where: { tipusucod: userFound?.tipusucod },
+      // });
 
-      if (!role?.tipusunom) {
-        throw new NotFoundException(
-          `Role with code ${userFound.tipusucod} cannot be found`,
-        );
-      }
+      // if (!role?.tipusunom) {
+      //   throw new NotFoundException(
+      //     `Role with code ${userFound.tipusucod} cannot be found`,
+      //   );
+      // }
 
       const payload: AuthJwtPayload = {
         userData: {
           userCode: userFound.usucod,
           userName: userFound.usunom,
-          role: role.tipusunom,
+          role: userFound.tipusucod,
         },
       };
 

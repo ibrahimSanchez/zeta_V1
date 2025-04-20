@@ -6,6 +6,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { SupplierModule } from './modules/supplier/supplier.module';
 import { ClientModule } from './modules/client/client.module';
 import { ProductModule } from './modules/product/product.module';
+import { ProductTypeModule } from './modules/product-type/product-type.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ProductModule } from './modules/product/product.module';
     SupplierModule,
     ClientModule,
     ProductModule,
+    ProductTypeModule,
   ],
   controllers: [],
   providers: [PrismaService],

@@ -12,19 +12,39 @@ import { CreateProductDto } from "./dto/create-product.dto";
 import { Currencies } from "./enums/currencies.enum";
 import { Prisma, productos } from "@prisma/client";
 import { UpdateProductDto } from "./dto/update-product.dto";
+import { ProductTypeService } from "../product-type/product-type.service";
+import { ListProductResponse } from "./types/listProductResponse";
 
 @Injectable()
 export class ProductService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private readonly productTypeService: ProductTypeService,
+  ) {}
 
   private cleanString(str: string): string {
     return str ? str.replace(/[^\x00-\x7F]/g, "") : str;
   }
 
   //todo: *********************************************************************************
-  async getAllProduct(): Promise<productos[]> {
+  async getAllProduct(): Promise<ListProductResponse[]> {
     try {
-      return await this.prismaService.productos.findMany();
+      const allProducts = await this.prismaService.productos.findMany();
+      const allProductsTypes = await this.productTypeService.findAll();
+
+      const listProductResponse = allProducts.map((product) => {
+        const family = allProductsTypes.find(
+          (type) => type.tipprodcod === product.tipprodcod,
+        );
+
+        return {
+          prodcod: product.prodcod,
+          prodnom: product.prodnom,
+          family: family || null,
+        };
+      });
+
+      return listProductResponse;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;

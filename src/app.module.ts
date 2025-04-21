@@ -7,6 +7,7 @@ import { SupplierModule } from './modules/supplier/supplier.module';
 import { ClientModule } from './modules/client/client.module';
 import { ProductModule } from './modules/product/product.module';
 import { ProductTypeModule } from './modules/product-type/product-type.module';
+import { OrdersModule } from './modules/orders/orders.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ProductTypeModule } from './modules/product-type/product-type.module';
     ClientModule,
     ProductModule,
     ProductTypeModule,
+    OrdersModule,
   ],
   controllers: [],
   providers: [PrismaService],

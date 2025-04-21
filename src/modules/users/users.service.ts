@@ -120,23 +120,27 @@ export class UsersService {
     }
   }
 
-  async deleteUser(usucod: number) {
+  async deleteUser(codes: number[]) {
     try {
-      return await this.prismaService.usuarios.delete({
-        where: { usucod },
-        select: {
-          usucod: true,
-          usunom: true,
-          tipusucod: true,
-        },
+      const deleted = await this.prismaService.usuarios.deleteMany({
+        where: { usucod: { in: codes } },
       });
+
+      if (deleted.count === 0) {
+        throw new NotFoundException(`No users found with the given codes`);
+      }
+
+      return {
+        message: `Deleted ${deleted.count} user(s) successfully.`,
+      };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === "P2025") {
-          throw new NotFoundException(`User with code ${usucod} not found`);
-        }
+        throw new InternalServerErrorException(
+          "Database error while deleting users",
+        );
       }
-      throw new InternalServerErrorException("Failed to update user");
+
+      throw new InternalServerErrorException("Failed to delete users");
     }
   }
 }

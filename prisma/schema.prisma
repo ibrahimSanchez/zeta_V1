@@ -113,7 +113,7 @@ model monedas {
 model ordenes {
   ordcod    Int      @id
   vendcod   Int
-  clicod    Int?
+  clicod    String?
   clidir    String   @db.VarChar(255)
   ordfec    DateTime
   ordfecpro DateTime
@@ -175,8 +175,8 @@ model prefijos {
 }
 
 model productos {
-  prodcod    String @id @db.VarChar(50)
-  prodnom    String @db.VarChar(250)
+  prodcod    String  @id @db.VarChar(50)
+  prodnom    String  @db.VarChar(250)
   tipprodcod String? @db.VarChar(50)
 
   @@map("productos")
@@ -255,7 +255,7 @@ model stock {
 }
 
 model tipoproductos {
-  tipprodcod String     @id @db.VarChar(50)
+  tipprodcod String  @id @db.VarChar(50)
   tipprodgru Int?
   tipprodnom String? @db.VarChar(50)
   tipprodimp Boolean

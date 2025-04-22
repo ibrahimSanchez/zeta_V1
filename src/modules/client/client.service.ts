@@ -165,18 +165,20 @@ export class ClientService {
         const clientData = responseData.QueryOut.Response;
         isLastPage = responseData.QueryOut.IsLastPage;
 
+        // return clientData
         const newClients = clientData
           .filter((data: Contact) => data.EsCliente === "S")
           .map((data: Contact) => {
             const client: any = {};
-            client.code = data.Codigo;
             client.name = data.Nombre.trim();
+            client.ruc = data.RUT;
             client.companyName = data.RazonSocial;
             client.address = data.DireccionCompleta;
-            client.rut = data.RUT ? parseInt(data.RUT) : null;
-            client.state = data.DepartamentoNombre;
-            client.registration_date = new Date(data.FechaAlta);
-            client.isActive = data.ContactoActivo === "S" ? "S" : "N";
+            client.code = data.Codigo;
+
+            // client.state = data.DepartamentoNombre;
+            // client.registration_date = new Date(data.FechaAlta);
+            // client.isActive = data.ContactoActivo === "S" ? "S" : "N";
 
             client.code = this.cleanString(client.code);
             client.name = this.cleanString(client.name);
@@ -214,7 +216,7 @@ export class ClientService {
             clinom: client.name || null,
             clidir: client.address || null,
             clirazsoc: client.companyName || null,
-            // cliruc: client.,
+            cliruc: client.ruc || null,
             cliest: true,
           });
         } else {
@@ -224,7 +226,7 @@ export class ClientService {
             clinom: client.name || null,
             clidir: client.address || null,
             clirazsoc: client.companyName || null,
-            cliruc: null,
+            cliruc: client.ruc || null,
             cliest: true,
           });
         }

@@ -204,19 +204,9 @@ export class SupplierService {
             const supplier: any = {};
             supplier.code = data.Codigo;
             supplier.name = data.Nombre.trim();
-            supplier.companyName = data.RazonSocial;
-            supplier.address = data.DireccionCompleta;
-            supplier.rut = data.RUT ? parseInt(data.RUT) : null;
-            supplier.state = data.DepartamentoNombre;
-            supplier.registration_date = new Date(data.FechaAlta);
-            supplier.isActive = data.ContactoActivo ? "S" : "N";
 
             supplier.code = this.cleanString(supplier.code);
             supplier.name = this.cleanString(supplier.name);
-            supplier.companyName = this.cleanString(supplier.companyName);
-            supplier.address = this.cleanString(supplier.address);
-            supplier.state = this.cleanString(supplier.state);
-            supplier.rut = this.parseRut(data.RUT);
 
             return supplier;
           });

@@ -12,6 +12,8 @@ export class OrdersService {
         ordnumfac: true,
         vendcod: true,
         clicod: true,
+        ordmon: true,
+        ordcos: true,
       },
     });
 
@@ -42,6 +44,12 @@ export class OrdersService {
         clinom: client?.clinom || "N/A",
         ruc: client?.cliruc || "N/A",
         clirazsoc: client?.clirazsoc || "N/A",
+        ordmon: order.ordmon || "N/A",
+        ordcos: order.ordcos,
+
+        // see what is returned
+        // sales: [],
+        // proposal: "",
       };
     });
 

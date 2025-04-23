@@ -84,9 +84,6 @@ export class ProductService {
         where: {
           parentproductid: prodcod,
         },
-        select: {
-          prodcod: true,
-        },
       });
 
       const components = currentComponents.map(({ prodcod }) => prodcod);

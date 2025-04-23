@@ -1,6 +1,6 @@
 import { tipoproductos } from "@prisma/client";
 
-export interface ListProductResponse {
+export interface ProductResponse {
   prodcod: string;
   prodnom: string;
   family: tipoproductos | null;
@@ -8,4 +8,3 @@ export interface ListProductResponse {
   components: string[];
 }
 
-//   components: ListProductResponse[];

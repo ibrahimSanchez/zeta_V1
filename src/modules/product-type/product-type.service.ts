@@ -90,4 +90,24 @@ export class ProductTypeService {
       throw new InternalServerErrorException("Failed to update product type");
     }
   }
+
+  async findProductTypeByTipprodcod(tipprodcod: string) {
+    try {
+      return await this.prismaService.tipoproductos.findUnique({
+        where: { tipprodcod },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new InternalServerErrorException(
+          "Database error while fetching tipoproductos",
+        );
+      }
+
+      throw new InternalServerErrorException("Unexpected error occurred");
+    }
+  }
 }

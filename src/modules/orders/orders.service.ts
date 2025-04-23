@@ -45,13 +45,12 @@ export class OrdersService {
         clinom: client?.clinom || "N/A",
         ruc: client?.cliruc || "N/A",
         clirazsoc: client?.clirazsoc || "N/A",
-        ordmon: order.ordmon || "N/A",
-        ordcos: order.ordcos,
+        ordmon: order.ordmon || 0,
+        ordcos: order.ordcos || 0,
         proposal: order.ordfecpro,
       };
     });
 
     return listOrdersResponse;
   }
-
 }

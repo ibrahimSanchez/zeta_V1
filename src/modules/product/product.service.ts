@@ -13,7 +13,7 @@ import { Currencies } from "./enums/currencies.enum";
 import { Prisma, productos } from "@prisma/client";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { ProductTypeService } from "../product-type/product-type.service";
-import { ListProductResponse } from "./types/listProductResponse";
+import { ProductResponse } from "./types/productResponse";
 
 @Injectable()
 export class ProductService {
@@ -27,7 +27,7 @@ export class ProductService {
   }
 
   //todo: *********************************************************************************
-  async getAllProduct(): Promise<ListProductResponse[]> {
+  async getAllProduct(): Promise<ProductResponse[]> {
     try {
       const allProducts = await this.prismaService.productos.findMany();
       const allProductsTypes = await this.productTypeService.findAll();
@@ -63,7 +63,7 @@ export class ProductService {
   }
 
   //todo: *********************************************************************************
-  async getProductByProdcod(prodcod: string): Promise<productos> {
+  async getProductByProdcod(prodcod: string): Promise<ProductResponse> {
     try {
       const foundProduct = await this.prismaService.productos.findUnique({
         where: { prodcod },
@@ -74,7 +74,30 @@ export class ProductService {
           `The product with code ${prodcod} cannot be found`,
         );
       }
-      return foundProduct;
+
+      const foundProductType =
+        await this.productTypeService.findProductTypeByTipprodcod(
+          foundProduct.tipprodcod || "",
+        );
+
+      const currentComponents = await this.prismaService.productos.findMany({
+        where: {
+          parentproductid: prodcod,
+        },
+        select: {
+          prodcod: true,
+        },
+      });
+
+      const components = currentComponents.map(({ prodcod }) => prodcod);
+
+      return {
+        prodcod: foundProduct.prodcod,
+        prodnom: foundProduct.prodnom,
+        family: foundProductType || null,
+        components,
+        componentsExist: true,
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -223,9 +246,10 @@ export class ProductService {
       }
     }
 
+    // return articles
+
     console.log(`Fetched ${articles.length} articles`);
 
-    // Procesar artículos en paralelo (por bloques si son muchos)
     await Promise.allSettled(
       articles.map((article) => this.processArticle(article)),
     );
@@ -267,7 +291,7 @@ export class ProductService {
   private async processArticle(article: any) {
     try {
       await this.upsertSupplier(article);
-      await this.upsertProductType(article);
+      if (article.familyCode.length > 0) await this.upsertProductType(article);
       await this.upsertProduct(article);
     } catch (err) {
       console.error(`Error processing article ${article.code}`, err);

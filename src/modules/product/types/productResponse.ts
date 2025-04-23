@@ -5,6 +5,5 @@ export interface ProductResponse {
   prodnom: string;
   family: tipoproductos | null;
   componentsExist: boolean;
-  components: string[] | productos;
+  components: string[] | ProductResponse[];
 }
-

@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Body, Controller, Get, Post } from "@nestjs/common";
 import { OrdersService } from "./orders.service";
 import { Public } from "../auth/decorators/public.decorator";
 
@@ -11,4 +11,6 @@ export class OrdersController {
   async getAllOrders() {
     return this.ordersService.getAllOrders();
   }
+
+
 }

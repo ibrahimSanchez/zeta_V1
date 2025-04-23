@@ -14,6 +14,7 @@ export class OrdersService {
         clicod: true,
         ordmon: true,
         ordcos: true,
+        ordfecpro: true,
       },
     });
 
@@ -46,10 +47,7 @@ export class OrdersService {
         clirazsoc: client?.clirazsoc || "N/A",
         ordmon: order.ordmon || "N/A",
         ordcos: order.ordcos,
-
-        // see what is returned
-        // sales: [],
-        // proposal: "",
+        proposal: order.ordfecpro,
       };
     });
 

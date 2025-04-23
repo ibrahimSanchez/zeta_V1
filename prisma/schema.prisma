@@ -178,6 +178,7 @@ model productos {
   prodcod    String  @id @db.VarChar(50)
   prodnom    String  @db.VarChar(250)
   tipprodcod String? @db.VarChar(50)
+  parentproductid String? @db.VarChar(50)
 
   @@map("productos")
 }

@@ -30,13 +30,13 @@ export class ProductController {
   }
 
   @Public()
-  @Post()
+  @Post('create')
   async createProduct(@Body() createProductDto: CreateProductDto) {
     return this.productService.createProduct(createProductDto);
   }
 
   @Public()
-  @Patch(":id")
+  @Patch("update/:id")
   async updateProduct(
     @Param("id") id: string,
     @Body() updateProductDto: UpdateProductDto,

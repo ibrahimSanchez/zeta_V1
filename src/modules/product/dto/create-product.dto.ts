@@ -1,3 +1,5 @@
 import { productos } from "@prisma/client";
 
-export type CreateProductDto = Omit<productos, ""> & {};
+export type CreateProductDto = Omit<productos, ""> & {
+  components?: string[];
+};

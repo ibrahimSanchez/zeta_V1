@@ -14,14 +14,12 @@ import { Prisma, productos } from "@prisma/client";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { ProductTypeService } from "../product-type/product-type.service";
 import { ListProductResponse } from "./types/listProductResponse";
-import { SupplierService } from "../supplier/supplier.service";
 
 @Injectable()
 export class ProductService {
   constructor(
     private prismaService: PrismaService,
     private readonly productTypeService: ProductTypeService,
-    private readonly supplierService: SupplierService,
   ) {}
 
   private cleanString(str: string): string {
@@ -43,6 +41,8 @@ export class ProductService {
           prodcod: product.prodcod,
           prodnom: product.prodnom,
           family: family || null,
+          components: [],
+          componentsExist: product.parentproductid ? true : false,
         };
       });
 
@@ -92,16 +92,28 @@ export class ProductService {
 
   //todo: *********************************************************************************
   async createProduct(createProductDto: CreateProductDto): Promise<productos> {
-    const { prodcod, prodnom, tipprodcod } = createProductDto;
-
+    const { prodcod, prodnom, tipprodcod, components } = createProductDto;
     try {
-      return this.prismaService.productos.create({
+      const createResponse = await this.prismaService.productos.create({
         data: {
           prodcod,
           prodnom,
           tipprodcod,
         },
       });
+
+      if (components && components.length > 0) {
+        await this.prismaService.productos.updateMany({
+          where: {
+            prodcod: { in: components },
+          },
+          data: {
+            parentproductid: prodcod,
+          },
+        });
+      }
+
+      return createResponse;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
@@ -118,10 +130,55 @@ export class ProductService {
     prodcod: string,
     updateProductDto: UpdateProductDto,
   ): Promise<productos> {
+    const { components, ...restData } = updateProductDto;
+
     try {
-      return await this.prismaService.productos.update({
-        where: { prodcod },
-        data: updateProductDto,
+      const currentComponents = await this.prismaService.productos.findMany({
+        where: {
+          parentproductid: prodcod,
+        },
+        select: {
+          prodcod: true,
+        },
+      });
+      const currentComponentCodes = currentComponents.map((c) => c.prodcod);
+
+      const componentsToAdd =
+        components?.filter((code) => !currentComponentCodes.includes(code)) ||
+        [];
+      const componentsToRemove =
+        currentComponentCodes.filter((code) => !components?.includes(code)) ||
+        [];
+
+      return await this.prismaService.$transaction(async (prisma) => {
+        const updatedProduct = await prisma.productos.update({
+          where: { prodcod },
+          data: restData,
+        });
+
+        if (componentsToAdd.length > 0) {
+          await prisma.productos.updateMany({
+            where: {
+              prodcod: { in: componentsToAdd },
+            },
+            data: {
+              parentproductid: prodcod,
+            },
+          });
+        }
+
+        if (componentsToRemove.length > 0) {
+          await prisma.productos.updateMany({
+            where: {
+              prodcod: { in: componentsToRemove },
+            },
+            data: {
+              parentproductid: null,
+            },
+          });
+        }
+
+        return updatedProduct;
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {

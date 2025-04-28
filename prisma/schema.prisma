@@ -302,10 +302,10 @@ model historialestados {
 model ordenesproductos {
   ordprodcod     Int     @id
   ordcod         Int
-  prodcod        Int
+  prodcod        String
   ordprodcon     String? @db.VarChar(255)
   ordprodcan     Int?
-  provcod        Int
+  provcod        String
   ordprodlle     Boolean
   ordprodnumfac  Int?
   ordprodpre     Float?

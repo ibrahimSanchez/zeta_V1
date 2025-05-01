@@ -247,7 +247,7 @@ export class ReportsService {
   //todo: *********************************************************************************
   async bestSellingProductsReport(datesReportQuery: DatesReportQuery) {
     const { startDate, endDate } = datesReportQuery;
-
+  
     try {
       const foundOrders = await this.prismaService.ordenes.findMany({
         where: {
@@ -260,13 +260,11 @@ export class ReportsService {
           ordcod: true,
         },
       });
-
-      if (foundOrders.length === 0) {
-        return [];
-      }
-
-      const ordcods = foundOrders.map((order) => order.ordcod);
-
+  
+      if (foundOrders.length === 0) return [];
+  
+      const ordcods = foundOrders.map(order => order.ordcod);
+  
       const foundProducts = await this.prismaService.ordenesproductos.findMany({
         where: {
           ordcod: { in: ordcods },
@@ -276,14 +274,12 @@ export class ReportsService {
           ordprodcan: true,
         },
       });
-
-      if (foundProducts.length === 0) {
-        return [];
-      }
-
+  
+      if (foundProducts.length === 0) return [];
+  
       const productSalesMap = new Map<string, number>();
-
-      foundProducts.forEach((product) => {
+  
+      foundProducts.forEach(product => {
         if (!product.prodcod) return;
         const currentSales = productSalesMap.get(product.prodcod) || 0;
         productSalesMap.set(
@@ -291,9 +287,9 @@ export class ReportsService {
           currentSales + (product.ordprodcan || 0),
         );
       });
-
+  
       const productCodes = Array.from(productSalesMap.keys());
-
+  
       const productsData = await this.prismaService.productos.findMany({
         where: {
           prodcod: { in: productCodes },
@@ -301,25 +297,68 @@ export class ReportsService {
         select: {
           prodcod: true,
           prodnom: true,
+          tipprodcod: true,
         },
       });
-
-      const productNameMap = new Map(
-        productsData.map((product) => [product.prodcod, product.prodnom]),
+  
+      const tipcods = Array.from(
+        new Set(
+          productsData
+            .map(p => p.tipprodcod)
+            .filter((cod): cod is string => cod !== null) // ← Aquí se evita el error
+        )
       );
-
+  
+      const tiposData = await this.prismaService.tipoproductos.findMany({
+        where: {
+          tipprodcod: { in: tipcods },
+        },
+        select: {
+          tipprodcod: true,
+          tipprodnom: true,
+        },
+      });
+  
+      const tipoNombreMap = new Map(
+        tiposData.map(tipo => [tipo.tipprodcod, tipo.tipprodnom])
+      );
+  
+      const productDataMap = new Map(
+        productsData.map(product => [
+          product.prodcod,
+          {
+            prodnom: product.prodnom,
+            tipcod: product.tipprodcod,
+            tipnom: product.tipprodcod
+              ? tipoNombreMap.get(product.tipprodcod) || null
+              : null,
+          },
+        ])
+      );
+  
       const sortedProducts = Array.from(productSalesMap.entries())
-        .map(([prodcod, totalSold]) => ({
-          prodcod,
-          prodnom: productNameMap.get(prodcod) || null,
-          totalSold,
-        }))
+        .map(([prodcod, totalSold]) => {
+          const productInfo = productDataMap.get(prodcod) || {
+            prodnom: null,
+            tipcod: null,
+            tipnom: null,
+          };
+  
+          return {
+            prodcod,
+            prodnom: productInfo.prodnom,
+            tipcod: productInfo.tipcod,
+            tipnom: productInfo.tipnom,
+            totalSold,
+          };
+        })
         .sort((a, b) => b.totalSold - a.totalSold);
-
+  
       return sortedProducts;
     } catch (error) {
       console.error("Error fetching best selling products report", error);
       throw new Error("Failed to fetch best selling products report");
     }
   }
+  
 }

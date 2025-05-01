@@ -20,9 +20,6 @@ export interface DatesReportQuery {
 }
 
 
-
-
-
 //   {
 //     "clicod": "10145",
 //      "startDate": "2008-04-02T17:05:41.000Z",

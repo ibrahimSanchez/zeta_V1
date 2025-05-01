@@ -198,6 +198,8 @@ export class SupplierService {
         const supplierData = responseData.Response;
         isLastPage = responseData.IsLastPage;
 
+        return supplierData;
+
         const newSuppliers = supplierData
           .filter((data: Contact) => data.EsProveedor === "S")
           .map((data: Contact) => {

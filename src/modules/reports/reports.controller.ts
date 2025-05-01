@@ -12,6 +12,14 @@ import {
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
+
+  @Public()
+  @Post("date-report")
+  async datesReport(@Body() datesReportQuery: DatesReportQuery) {
+    return this.reportsService.datesReport(datesReportQuery);
+  }
+
+
   @Public()
   @Post("client-report")
   async clientReport(@Body() clientReportQuery: ClientReportQuery) {
@@ -30,11 +38,6 @@ export class ReportsController {
     return this.reportsService.brandReport(brandReportQuery.ordmar);
   }
 
-  @Public()
-  @Post("date-report")
-  async datesReport(@Body() datesReportQuery: DatesReportQuery) {
-    return this.reportsService.datesReport(datesReportQuery);
-  }
 
   @Public()
   @Post("best-selling-products-report")

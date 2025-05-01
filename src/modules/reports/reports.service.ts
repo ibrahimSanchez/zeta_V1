@@ -5,6 +5,7 @@ import {
   SupplierReportQuery,
 } from "./types/reportTypes";
 import { PrismaService } from "../prisma/prisma.service";
+import { ordenes } from "@prisma/client";
 
 @Injectable()
 export class ReportsService {
@@ -200,6 +201,8 @@ export class ReportsService {
           pagocod: true,
           moncod: true,
           ordcos: true,
+          ordcom: true,
+          ordmon: true,
         },
       });
 
@@ -207,44 +210,30 @@ export class ReportsService {
         return [];
       }
 
-      const ordcods = foundOrders.map((order) => order.ordcod);
-
-      const foundProducts = await this.prismaService.ordenesproductos.findMany({
-        where: {
-          ordcod: { in: ordcods },
-        },
-        select: {
-          ordcod: true,
-          prodcod: true,
-          provcod: true,
-          ordprodcan: true,
-          ordprodpre: true,
-          ordprodprereal: true,
-        },
-      });
-
       const report = foundOrders.map((order) => {
-        const productos = foundProducts
-          .filter((product) => product.ordcod === order.ordcod)
-          .map((product) => ({
-            prodcod: product.prodcod,
-            provcod: product.provcod,
-            ordprodcan: product.ordprodcan,
-            ordprodpre: product.ordprodpre,
-            ordprodprereal: product.ordprodprereal,
-          }));
+        const { ordcos, ordmon, ordcom } = order;
+
+        let profitPercentage;
+        if (ordcos === null || ordmon === null || ordcom === null)
+          profitPercentage = "N/A";
+        else {
+          const g = ordmon - ordcos - ordcom * 100;
+          profitPercentage = g / ordmon;
+        }
 
         return {
           ordcod: order.ordcod,
+          ordnumfac: order.ordnumfac,
+
           clicod: order.clicod,
           ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
-          ordnumfac: order.ordnumfac,
           estcod: order.estcod,
           pagocod: order.pagocod,
           moncod: order.moncod,
-          ordcos: order.ordcos,
-          productos,
+          ordcos: order.ordcos || 0,
+          ordcom: order.ordcom || 0,
+          profitPercentage
         };
       });
 

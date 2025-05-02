@@ -1,11 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import {
   ClientReportQuery,
   DatesReportQuery,
   SupplierReportQuery,
 } from "./types/reportTypes";
 import { PrismaService } from "../prisma/prisma.service";
-import { ordenes } from "@prisma/client";
 
 @Injectable()
 export class ReportsService {
@@ -13,11 +12,25 @@ export class ReportsService {
 
   //todo: *********************************************************************************
   async clientReport(clientReportQuery: ClientReportQuery) {
-    // : Promise<ClientReportResponse>
-    const { clicod, endDate, startDate } = clientReportQuery;
+    const { clicod, startDate, endDate } = clientReportQuery;
 
     try {
-      const foundOrder = await this.prismaService.ordenes.findMany({
+      const foundClient = await this.prismaService.clientes.findUnique({
+        where: {
+          clicod,
+        },
+        select: {
+          clicodbit: true,
+        },
+      });
+
+      if (!foundClient) {
+        throw new NotFoundException(
+          `The client with code ${clicod} cannot be found`,
+        );
+      }
+
+      const foundOrders = await this.prismaService.ordenes.findMany({
         where: {
           clicod,
           ordfec: {
@@ -29,26 +42,53 @@ export class ReportsService {
           ordcod: true,
           clicod: true,
           ordfec: true,
+          ordfecpro: true,
           ordnumfac: true,
           estcod: true,
           pagocod: true,
           moncod: true,
           ordcos: true,
-          ordfecpro: true,
+          ordcom: true,
+          ordmon: true,
         },
       });
 
-      const foundClient = await this.prismaService.clientes.findUnique({
-        where: {
-          clicod,
-        },
-        select: {
-          clicodbit: true,
-        },
+      if (foundOrders.length === 0) {
+        return [];
+      }
+
+      const report = foundOrders.map((order) => {
+        const { ordcos, ordmon, ordcom } = order;
+        console.log({ ordcos, ordmon, ordcom });
+        let profitPercentage;
+        if (ordcos === null || ordmon === null || ordcom === null) {
+          profitPercentage = "N/A";
+        } else {
+          const g = ordmon - ordcos - ordcom * 100;
+          profitPercentage = g / ordmon;
+        }
+
+        return {
+          ordcod: order.ordcod,
+          ordnumfac: order.ordnumfac,
+          clicod: order.clicod,
+          ordfec: order.ordfec,
+          ordfecpro: order.ordfecpro,
+          estcod: order.estcod,
+          pagocod: order.pagocod,
+          moncod: order.moncod,
+          clicodbit: foundClient.clicodbit || "N/A",
+          ordcos: order.ordcos || 0,
+          ordcom: order.ordcom || 0,
+          profitPercentage,
+        };
       });
 
-      return { foundOrder, foundClient };
-    } catch (error) {}
+      return report;
+    } catch (error) {
+      console.error("Error fetching client report", error);
+      throw new Error("Failed to fetch client report");
+    }
   }
 
   //todo: *********************************************************************************
@@ -233,7 +273,7 @@ export class ReportsService {
           moncod: order.moncod,
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
-          profitPercentage
+          profitPercentage,
         };
       });
 
@@ -247,7 +287,7 @@ export class ReportsService {
   //todo: *********************************************************************************
   async bestSellingProductsReport(datesReportQuery: DatesReportQuery) {
     const { startDate, endDate } = datesReportQuery;
-  
+
     try {
       const foundOrders = await this.prismaService.ordenes.findMany({
         where: {
@@ -260,11 +300,11 @@ export class ReportsService {
           ordcod: true,
         },
       });
-  
+
       if (foundOrders.length === 0) return [];
-  
-      const ordcods = foundOrders.map(order => order.ordcod);
-  
+
+      const ordcods = foundOrders.map((order) => order.ordcod);
+
       const foundProducts = await this.prismaService.ordenesproductos.findMany({
         where: {
           ordcod: { in: ordcods },
@@ -274,12 +314,12 @@ export class ReportsService {
           ordprodcan: true,
         },
       });
-  
+
       if (foundProducts.length === 0) return [];
-  
+
       const productSalesMap = new Map<string, number>();
-  
-      foundProducts.forEach(product => {
+
+      foundProducts.forEach((product) => {
         if (!product.prodcod) return;
         const currentSales = productSalesMap.get(product.prodcod) || 0;
         productSalesMap.set(
@@ -287,9 +327,9 @@ export class ReportsService {
           currentSales + (product.ordprodcan || 0),
         );
       });
-  
+
       const productCodes = Array.from(productSalesMap.keys());
-  
+
       const productsData = await this.prismaService.productos.findMany({
         where: {
           prodcod: { in: productCodes },
@@ -300,15 +340,15 @@ export class ReportsService {
           tipprodcod: true,
         },
       });
-  
+
       const tipcods = Array.from(
         new Set(
           productsData
-            .map(p => p.tipprodcod)
-            .filter((cod): cod is string => cod !== null) // ← Aquí se evita el error
-        )
+            .map((p) => p.tipprodcod)
+            .filter((cod): cod is string => cod !== null),
+        ),
       );
-  
+
       const tiposData = await this.prismaService.tipoproductos.findMany({
         where: {
           tipprodcod: { in: tipcods },
@@ -318,13 +358,13 @@ export class ReportsService {
           tipprodnom: true,
         },
       });
-  
+
       const tipoNombreMap = new Map(
-        tiposData.map(tipo => [tipo.tipprodcod, tipo.tipprodnom])
+        tiposData.map((tipo) => [tipo.tipprodcod, tipo.tipprodnom]),
       );
-  
+
       const productDataMap = new Map(
-        productsData.map(product => [
+        productsData.map((product) => [
           product.prodcod,
           {
             prodnom: product.prodnom,
@@ -333,9 +373,9 @@ export class ReportsService {
               ? tipoNombreMap.get(product.tipprodcod) || null
               : null,
           },
-        ])
+        ]),
       );
-  
+
       const sortedProducts = Array.from(productSalesMap.entries())
         .map(([prodcod, totalSold]) => {
           const productInfo = productDataMap.get(prodcod) || {
@@ -343,7 +383,7 @@ export class ReportsService {
             tipcod: null,
             tipnom: null,
           };
-  
+
           return {
             prodcod,
             prodnom: productInfo.prodnom,
@@ -353,12 +393,11 @@ export class ReportsService {
           };
         })
         .sort((a, b) => b.totalSold - a.totalSold);
-  
+
       return sortedProducts;
     } catch (error) {
       console.error("Error fetching best selling products report", error);
       throw new Error("Failed to fetch best selling products report");
     }
   }
-  
 }

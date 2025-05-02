@@ -22,6 +22,30 @@ export class ClientService {
   }
 
   //todo: *********************************************************************************
+  async getAllClientsNamesCodes() {
+    try {
+      return await this.prismaService.clientes.findMany({
+        select: {
+          clicod: true,
+          clinom: true
+        },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new InternalServerErrorException(
+          "Database error while fetching clients",
+        );
+      }
+
+      throw new InternalServerErrorException("Unexpected error occurred");
+    }
+  }
+
+  //todo: *********************************************************************************
   async getAllClient(): Promise<clientes[]> {
     try {
       return await this.prismaService.clientes.findMany();
@@ -237,5 +261,4 @@ export class ClientService {
 
     return clients;
   }
-
 }

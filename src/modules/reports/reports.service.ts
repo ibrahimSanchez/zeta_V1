@@ -96,22 +96,19 @@ export class ReportsService {
     const { provcod, startDate, endDate } = supplierReportQuery;
 
     try {
-      const ordenesProductos =
+      const providerProducts =
         await this.prismaService.ordenesproductos.findMany({
           where: { provcod },
-          select: {
-            ordcod: true,
-            provcod: true,
-          },
+          select: { ordcod: true },
         });
 
-      if (ordenesProductos.length === 0) {
+      const ordcods = [...new Set(providerProducts.map((p) => p.ordcod))];
+
+      if (ordcods.length === 0) {
         return [];
       }
 
-      const ordcods = ordenesProductos.map((op) => op.ordcod);
-
-      const ordenes = await this.prismaService.ordenes.findMany({
+      const foundOrders = await this.prismaService.ordenes.findMany({
         where: {
           ordcod: { in: ordcods },
           ordfec: {
@@ -121,39 +118,52 @@ export class ReportsService {
         },
         select: {
           ordcod: true,
-          clicod: true,
           ordfec: true,
+          ordfecpro: true,
           ordnumfac: true,
           estcod: true,
           pagocod: true,
           moncod: true,
           ordcos: true,
-          ordfecpro: true,
+          ordcom: true,
+          ordmon: true,
         },
       });
 
-      const report = ordenes.map((orden) => {
-        const ordenProducto = ordenesProductos.find(
-          (op) => op.ordcod === orden.ordcod,
-        );
+      if (foundOrders.length === 0) {
+        return [];
+      }
+
+      const report = foundOrders.map((order) => {
+        const { ordcos, ordmon, ordcom } = order;
+
+        let profitPercentage;
+        if (ordcos === null || ordmon === null || ordcom === null) {
+          profitPercentage = "N/A";
+        } else {
+          const g = ordmon - ordcos - ordcom * 100;
+          profitPercentage = g / ordmon;
+        }
 
         return {
-          ordcod: orden.ordcod,
-          provcod: ordenProducto?.provcod ?? null,
-          ordfec: orden.ordfec,
-          ordfecpro: orden.ordfecpro,
-          ordnumfac: orden.ordnumfac,
-          estcod: orden.estcod,
-          pagocod: orden.pagocod,
-          moncod: orden.moncod,
-          ordcos: orden.ordcos,
+          ordcod: order.ordcod,
+          ordnumfac: order.ordnumfac,
+          provcod,
+          ordfec: order.ordfec,
+          ordfecpro: order.ordfecpro,
+          estcod: order.estcod,
+          pagocod: order.pagocod,
+          moncod: order.moncod,
+          ordcos: order.ordcos || 0,
+          ordcom: order.ordcom || 0,
+          profitPercentage,
         };
       });
 
       return report;
     } catch (error) {
-      console.error("Error fetching supplier report", error);
-      throw new Error("Failed to fetch supplier report");
+      console.error("Error fetching provider report", error);
+      throw new Error("Failed to fetch provider report");
     }
   }
 

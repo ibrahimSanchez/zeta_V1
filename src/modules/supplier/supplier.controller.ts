@@ -18,6 +18,12 @@ export class SupplierController {
   constructor(private readonly supplierService: SupplierService) {}
 
   @Public()
+  @Get('names-codes')
+  async getAllSuppliersNamesCodes() {
+    return this.supplierService.getAllSuppliersNamesCodes();
+  }
+
+  @Public()
   @Get()
   async getAllSupplier() {
     return this.supplierService.getAllSupplier();

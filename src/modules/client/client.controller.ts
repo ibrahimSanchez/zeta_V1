@@ -18,6 +18,12 @@ export class ClientController {
   constructor(private readonly clientService: ClientService) {}
 
   @Public()
+  @Get('names-codes')
+  async getAllClientsNamesCodes() {
+    return this.clientService.getAllClientsNamesCodes();
+  }
+
+  @Public()
   @Get()
   async getAllClient() {
     return this.clientService.getAllClient();
@@ -59,5 +65,4 @@ export class ClientController {
       );
     }
   }
-
 }

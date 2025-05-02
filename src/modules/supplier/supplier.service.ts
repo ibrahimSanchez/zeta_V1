@@ -27,6 +27,32 @@ export class SupplierService {
     } else return null;
   }
 
+
+ //todo: *********************************************************************************
+  async getAllSuppliersNamesCodes() {
+    try {
+      return await this.prismaService.proveedores.findMany({
+        select: {
+          provcod: true,
+          provnom: true
+        },
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new InternalServerErrorException(
+          "Database error while fetching suppliers",
+        );
+      }
+
+      throw new InternalServerErrorException("Unexpected error occurred");
+    }
+  }
+
+
   //todo: *********************************************************************************
   async getAllSupplier(): Promise<proveedores[]> {
     try {

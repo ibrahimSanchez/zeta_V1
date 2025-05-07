@@ -122,24 +122,24 @@ model ordenes {
   ordnumtal String?  @db.VarChar(50)
   ordmat    String?  @db.VarChar(50)
   ordarmpor Int?
-  ordins    Boolean
-  ordent    Boolean
-  ordace    Boolean
+  ordins    Boolean?
+  ordent    Boolean?
+  ordace    Boolean?
   estcod    Int
   ordvia    Int?
   ordnumfac Int?
   ordnumrem Int?
-  ordretcli Boolean
-  ordretdec Boolean
-  ordentven Boolean
+  ordretcli Boolean?
+  ordretdec Boolean?
+  ordentven Boolean?
   ordobs    String?
   ordcos    Float?
   ordmon    Float?
   moncod    Int?
   pagocod   Int?
   ordcom    Float?
-  ordrev    Boolean
-  ordinstec Boolean
+  ordrev    Boolean?
+  ordinstec Boolean?
 
   // cliente   clientes? @relation(fields: [clicod], references: [clicod])
   // estado    estados   @relation(fields: [estcod], references: [estcod])

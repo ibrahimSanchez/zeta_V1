@@ -82,7 +82,7 @@ export class OrdersService {
           ordmon: true,
           ordcos: true,
           ordcom: true,
-
+          ordnuev: true,
           pagocod: true,
         },
       });
@@ -113,12 +113,12 @@ export class OrdersService {
           },
         });
       } else foundClient = null;
-
       const foundOrderProducts =
         await this.prismaService.ordenesproductos.findMany({
           where: { ordcod },
           select: {
             prodcod: true,
+            prodcost: true,
           },
         });
 
@@ -140,6 +140,17 @@ export class OrdersService {
         },
       });
 
+      const costMap = new Map(
+        foundOrderProducts.map((p) => [p.prodcod, p.prodcost]),
+      );
+
+      const productsWithCost = products.map((product) => ({
+        ...product,
+        prodcost: costMap.get(product.prodcod) || 0,
+      }));
+
+      // return productsWithCost;
+
       const OrderResponse = {
         ordcod: foundOrder.ordcod,
         ordfec: foundOrder.ordfec,
@@ -155,7 +166,8 @@ export class OrdersService {
         ordfecpro: foundOrder.ordfecpro,
         ordmon: foundOrder.ordmon || 0,
         ordcos: foundOrder.ordcos || 0,
-        products,
+        ordnuev: foundOrder.ordnuev,
+        products: productsWithCost,
         productCant: prodcods.length,
       };
 
@@ -166,6 +178,7 @@ export class OrdersService {
       }
 
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.log(error);
         throw new BadRequestException("Invalid order code format");
       }
 
@@ -176,7 +189,7 @@ export class OrdersService {
   }
 
   //todo: *********************************************************************************
-  async createOrder(createOrderDto: CreateOrderDto): Promise<ordenes> {
+  async createOrder(createOrderDto: CreateOrderDto) {
     const {
       ordcod,
       ordfec,
@@ -190,10 +203,11 @@ export class OrdersService {
       pagocod,
       clidir,
       estcod,
+      orderProduct,
     } = createOrderDto;
 
     try {
-      const createResponse = await this.prismaService.ordenes.create({
+      await this.prismaService.ordenes.create({
         data: {
           ordcod,
           vendcod,
@@ -207,10 +221,28 @@ export class OrdersService {
           ordcos,
           ordcom,
           pagocod,
+          ordnuev: "V1",
         },
       });
 
-      return createResponse;
+      const dataToInsert = orderProduct.map((product) => ({
+        ordcod,
+        ordprodcod: product.ordprodcod,
+        prodcod: product.prodcod,
+        provcod: product.provcod,
+        ordprodcon: product.ordprodcon,
+        ordprodcan: product.ordprodcan,
+        ordprodpre: product.prodcost,
+        ordprodlle: false,
+        prodcost: product.prodcost,
+      }));
+
+      await this.prismaService.ordenesproductos.createMany({
+        data: dataToInsert,
+        skipDuplicates: true,
+      });
+
+      return createOrderDto;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
@@ -227,11 +259,63 @@ export class OrdersService {
     ordcod: number,
     updateOrderDto: UpdateOrderDto,
   ): Promise<ordenes> {
+    const {
+      ordfec,
+      ordnumfac,
+      vendcod,
+      clicod,
+      ordfecpro,
+      ordmon,
+      ordcos,
+      ordcom,
+      pagocod,
+      clidir,
+      estcod,
+      orderProduct,
+    } = updateOrderDto;
+
     try {
-      return await this.prismaService.ordenes.update({
+      const updatedOrder = await this.prismaService.ordenes.update({
         where: { ordcod },
-        data: updateOrderDto,
+        data: {
+          ordfec,
+          ordnumfac,
+          vendcod,
+          clicod,
+          ordfecpro,
+          ordmon,
+          ordcos,
+          ordcom,
+          pagocod,
+          clidir,
+          estcod,
+        },
       });
+
+      if (orderProduct && orderProduct.length > 0) {
+        await this.prismaService.ordenesproductos.deleteMany({
+          where: { ordcod },
+        });
+
+        const dataToInsert = orderProduct.map((product) => ({
+          ordcod,
+          ordprodcod: product.ordprodcod,
+          prodcod: product.prodcod,
+          provcod: product.provcod,
+          ordprodcon: product.ordprodcon,
+          ordprodcan: product.ordprodcan,
+          ordprodpre: product.prodcost,
+          ordprodlle: false,
+          prodcost: product.prodcost,
+        }));
+
+        await this.prismaService.ordenesproductos.createMany({
+          data: dataToInsert,
+          skipDuplicates: true,
+        });
+      }
+
+      return updatedOrder;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2025") {

@@ -140,6 +140,7 @@ model ordenes {
   ordcom    Float?
   ordrev    Boolean?
   ordinstec Boolean?
+  ordnuev   String?
 
   // cliente   clientes? @relation(fields: [clicod], references: [clicod])
   // estado    estados   @relation(fields: [estcod], references: [estcod])
@@ -175,9 +176,9 @@ model prefijos {
 }
 
 model productos {
-  prodcod    String  @id @db.VarChar(50)
-  prodnom    String  @db.VarChar(250)
-  tipprodcod String? @db.VarChar(50)
+  prodcod         String  @id @db.VarChar(50)
+  prodnom         String  @db.VarChar(250)
+  tipprodcod      String? @db.VarChar(50)
   parentproductid String? @db.VarChar(50)
 
   @@map("productos")
@@ -310,6 +311,7 @@ model ordenesproductos {
   ordprodnumfac  Int?
   ordprodpre     Float?
   ordprodprereal Float?
+  prodcost       Float
 
   // orden    ordenes     @relation(fields: [ordcod], references: [ordcod])
   // producto productos   @relation(fields: [prodcod], references: [prodcod])

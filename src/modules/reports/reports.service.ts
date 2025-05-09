@@ -5,10 +5,18 @@ import {
   SupplierReportQuery,
 } from "./types/reportTypes";
 import { PrismaService } from "../prisma/prisma.service";
+import { OrderStateService } from "../order-state/order-state.service";
+import { CurrencyService } from "../currency/currency.service";
+import { PaymentMethodService } from "../payment-method/payment-method.service";
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly orderStateService: OrderStateService,
+    private readonly currencyService: CurrencyService,
+    private readonly paymentMethodService: PaymentMethodService,
+  ) {}
 
   //todo: *********************************************************************************
   async clientReport(clientReportQuery: ClientReportQuery) {
@@ -44,12 +52,13 @@ export class ReportsService {
           ordfec: true,
           ordfecpro: true,
           ordnumfac: true,
-          estcod: true,
-          pagocod: true,
-          moncod: true,
           ordcos: true,
           ordcom: true,
           ordmon: true,
+
+          estcod: true,
+          pagocod: true,
+          moncod: true,
         },
       });
 
@@ -57,9 +66,12 @@ export class ReportsService {
         return [];
       }
 
+      const foundStates = await this.orderStateService.findAll();
+      const foundCurrencies = await this.currencyService.findAll();
+      const foundPaymentMethods = await this.paymentMethodService.findAll();
+
       const report = foundOrders.map((order) => {
-        const { ordcos, ordmon, ordcom } = order;
-        console.log({ ordcos, ordmon, ordcom });
+        const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
         let profitPercentage;
         if (ordcos === null || ordmon === null || ordcom === null) {
           profitPercentage = "N/A";
@@ -68,15 +80,21 @@ export class ReportsService {
           profitPercentage = g / ordmon;
         }
 
+        const state = foundStates.find((s) => s.estcod === estcod);
+        const currency = foundCurrencies.find((c) => c.moncod === moncod);
+        const paymentMethod = foundPaymentMethods.find(
+          (pm) => pm.pagocod === pagocod,
+        );
+
         return {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           clicod: order.clicod,
           ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
-          estcod: order.estcod,
-          pagocod: order.pagocod,
-          moncod: order.moncod,
+          estnom: state?.estnom,
+          pagonom: paymentMethod?.pagonom,
+          monnom: currency?.monnom,
           clicodbit: foundClient.clicodbit || "N/A",
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
@@ -134,8 +152,12 @@ export class ReportsService {
         return [];
       }
 
+      const foundStates = await this.orderStateService.findAll();
+      const foundCurrencies = await this.currencyService.findAll();
+      const foundPaymentMethods = await this.paymentMethodService.findAll();
+
       const report = foundOrders.map((order) => {
-        const { ordcos, ordmon, ordcom } = order;
+        const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
 
         let profitPercentage;
         if (ordcos === null || ordmon === null || ordcom === null) {
@@ -144,6 +166,11 @@ export class ReportsService {
           const g = ordmon - ordcos - ordcom * 100;
           profitPercentage = g / ordmon;
         }
+        const state = foundStates.find((s) => s.estcod === estcod);
+        const currency = foundCurrencies.find((c) => c.moncod === moncod);
+        const paymentMethod = foundPaymentMethods.find(
+          (pm) => pm.pagocod === pagocod,
+        );
 
         return {
           ordcod: order.ordcod,
@@ -151,9 +178,10 @@ export class ReportsService {
           provcod,
           ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
-          estcod: order.estcod,
-          pagocod: order.pagocod,
-          moncod: order.moncod,
+          estnom: state?.estnom,
+          pagonom: paymentMethod?.pagonom,
+          monnom: currency?.monnom,
+
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
           profitPercentage,
@@ -201,6 +229,8 @@ export class ReportsService {
         },
       });
 
+      const foundStates = await this.orderStateService.findAll();
+
       const report = foundOrders.map((order) => {
         const productos = foundProducts
           .filter((product) => product.ordcod === order.ordcod)
@@ -211,13 +241,13 @@ export class ReportsService {
             ordprodpre: product.ordprodpre,
             ordprodprereal: product.ordprodprereal,
           }));
-
+        const state = foundStates.find((s) => s.estcod === order.estcod);
         return {
           ordcod: order.ordcod,
           ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
           ordnumfac: order.ordnumfac,
-          estcod: order.estcod,
+          estnom: state?.estnom,
           productos,
         };
       });
@@ -259,9 +289,12 @@ export class ReportsService {
       if (foundOrders.length === 0) {
         return [];
       }
+      const foundStates = await this.orderStateService.findAll();
+      const foundCurrencies = await this.currencyService.findAll();
+      const foundPaymentMethods = await this.paymentMethodService.findAll();
 
       const report = foundOrders.map((order) => {
-        const { ordcos, ordmon, ordcom } = order;
+        const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
 
         let profitPercentage;
         if (ordcos === null || ordmon === null || ordcom === null)
@@ -270,6 +303,11 @@ export class ReportsService {
           const g = ordmon - ordcos - ordcom * 100;
           profitPercentage = g / ordmon;
         }
+        const state = foundStates.find((s) => s.estcod === estcod);
+        const currency = foundCurrencies.find((c) => c.moncod === moncod);
+        const paymentMethod = foundPaymentMethods.find(
+          (pm) => pm.pagocod === pagocod,
+        );
 
         return {
           ordcod: order.ordcod,
@@ -278,9 +316,10 @@ export class ReportsService {
           clicod: order.clicod,
           ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
-          estcod: order.estcod,
-          pagocod: order.pagocod,
-          moncod: order.moncod,
+          estnom: state?.estnom,
+          pagonom: paymentMethod?.pagonom,
+          monnom: currency?.monnom,
+
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
           profitPercentage,

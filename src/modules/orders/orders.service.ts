@@ -9,10 +9,14 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ordenes, Prisma } from "@prisma/client";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
+import { SupplierService } from "../supplier/supplier.service";
 
 @Injectable()
 export class OrdersService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private readonly supplierService: SupplierService,
+  ) {}
 
   //todo: *********************************************************************************
   async getAllOrders() {
@@ -117,6 +121,8 @@ export class OrdersService {
         },
       });
 
+      const foundSuppliers = await this.supplierService.getAllSupplier();
+
       let foundClient;
       if (foundOrder.clicod) {
         foundClient = await this.prismaService.clientes.findUnique({
@@ -130,6 +136,7 @@ export class OrdersService {
           },
         });
       } else foundClient = null;
+
       const foundOrderProducts =
         await this.prismaService.ordenesproductos.findMany({
           where: { ordcod },
@@ -137,6 +144,7 @@ export class OrdersService {
             prodcod: true,
             prodcost: true,
             ordprodcan: true,
+            provcod: true,
           },
         });
 
@@ -163,12 +171,13 @@ export class OrdersService {
 
       const prodMap = new Map<
         string,
-        { prodcost: number; ordprodcan: number }
+        { prodcost: number; ordprodcan: number; provcod: string | null }
       >();
       foundOrderProducts.forEach((p) => {
         prodMap.set(p.prodcod, {
           prodcost: p.prodcost || 0,
           ordprodcan: p.ordprodcan || 0,
+          provcod: p.provcod || null,
         });
       });
       const tipoMap = new Map<string, string>();
@@ -181,6 +190,8 @@ export class OrdersService {
         prodcost: prodMap.get(product.prodcod)?.prodcost || 0,
         ordprodcan: prodMap.get(product.prodcod)?.ordprodcan || 0,
         tipprodnom: tipoMap.get(product.tipprodcod ?? "") || "N/A",
+        provnom: foundSuppliers.find((s) => s.provcod === s.provcod)?.provnom,
+        provcod: foundSuppliers.find((s) => s.provcod === s.provcod)?.provcod,
       }));
 
       // return productsWithCost;
@@ -338,14 +349,14 @@ export class OrdersService {
 
         const dataToInsert = orderProduct.map((product) => ({
           ordcod,
-        prodcod: product.prodcod,
-        provcod: product.provcod,
-        ordprodcan: product.ordprodcan,
-        ordprodlle: false,
-        prodcost: product.prodcost,
-        // ordprodcod: product.ordprodcod,
-        // ordprodcon: product.ordprodcon,
-        // ordprodpre: product.prodcost,
+          prodcod: product.prodcod,
+          provcod: product.provcod,
+          ordprodcan: product.ordprodcan,
+          ordprodlle: false,
+          prodcost: product.prodcost,
+          // ordprodcod: product.ordprodcod,
+          // ordprodcon: product.ordprodcon,
+          // ordprodpre: product.prodcost,
         }));
 
         await this.prismaService.ordenesproductos.createMany({

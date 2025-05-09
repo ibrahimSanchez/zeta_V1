@@ -11,6 +11,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { PaymentMethodModule } from './modules/payment-method/payment-method.module';
+import { OrderStateModule } from './modules/order-state/order-state.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PaymentMethodModule } from './modules/payment-method/payment-method.mod
     ReportsModule,
     CurrencyModule,
     PaymentMethodModule,
+    OrderStateModule,
   ],
   controllers: [],
   providers: [PrismaService],

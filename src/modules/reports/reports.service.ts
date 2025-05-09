@@ -295,7 +295,7 @@ export class ReportsService {
 
       const report = foundOrders.map((order) => {
         const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
-
+ 
         let profitPercentage;
         if (ordcos === null || ordmon === null || ordcom === null)
           profitPercentage = "N/A";

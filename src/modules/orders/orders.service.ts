@@ -10,12 +10,16 @@ import { ordenes, Prisma } from "@prisma/client";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
 import { SupplierService } from "../supplier/supplier.service";
+import { PaymentMethodService } from "../payment-method/payment-method.service";
+import { CurrencyService } from "../currency/currency.service";
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prismaService: PrismaService,
     private readonly supplierService: SupplierService,
+    private readonly currencyService: CurrencyService,
+    private readonly paymentMethodService: PaymentMethodService,
   ) {}
 
   //todo: *********************************************************************************
@@ -110,7 +114,6 @@ export class OrdersService {
             estnom: true,
           },
         });
-        state = foundState?.estnom;
       } else state = "N/A";
 
       const foundVendor = await this.prismaService.vendedores.findUnique({
@@ -194,14 +197,26 @@ export class OrdersService {
         provcod: foundSuppliers.find((s) => s.provcod === s.provcod)?.provcod,
       }));
 
+      let foundCurrencies;
+      if (foundOrder.moncod)
+        foundCurrencies = await this.currencyService.findOne(foundOrder.moncod);
+
+      let foundPaymentMethods;
+      if (foundOrder.pagocod)
+        foundPaymentMethods = await this.paymentMethodService.findOne(
+          foundOrder.pagocod,
+        );
       // return productsWithCost;
 
       const OrderResponse = {
         ordcod: foundOrder.ordcod,
         ordfec: foundOrder.ordfec,
         pagocod: foundOrder.pagocod,
+        pagonom: foundPaymentMethods.pagonom,
         moncod: foundOrder.moncod,
-        state,
+        monnom: foundCurrencies.monnom,
+        estcod: foundOrder.estcod,
+        estnom: state,
         ordnumfac: foundOrder.ordnumfac,
         ordobs: foundOrder.ordobs || "N/A",
         vendcod: foundOrder.vendcod || "N/A",

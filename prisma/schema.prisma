@@ -301,7 +301,7 @@ model historialestados {
 }
 
 model ordenesproductos {
-  ordprodcod     Int     @id
+  ordprodcod     Int     @id @default(autoincrement())
   ordcod         Int
   prodcod        String
   ordprodcon     String? @db.VarChar(255)

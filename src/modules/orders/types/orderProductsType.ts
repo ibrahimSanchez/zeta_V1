@@ -1,8 +1,8 @@
 export interface OrderProductType {
-  ordprodcod: number;
+  // ordprodcod: number;
   prodcod: string;
   provcod: string;
-  ordprodcon: string;
+  // ordprodcon: string;
   prodcost: number;
   ordprodcan: number;
 }

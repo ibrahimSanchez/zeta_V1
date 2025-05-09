@@ -9,6 +9,8 @@ import { ProductModule } from './modules/product/product.module';
 import { ProductTypeModule } from './modules/product-type/product-type.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { CurrencyModule } from './modules/currency/currency.module';
+import { PaymentMethodModule } from './modules/payment-method/payment-method.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { ReportsModule } from './modules/reports/reports.module';
     ProductTypeModule,
     OrdersModule,
     ReportsModule,
+    CurrencyModule,
+    PaymentMethodModule,
   ],
   controllers: [],
   providers: [PrismaService],

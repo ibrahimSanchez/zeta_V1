@@ -84,6 +84,9 @@ export class OrdersService {
           ordcom: true,
           ordnuev: true,
           pagocod: true,
+          ordobs: true,
+          moncod: true,
+          estcod: true,
         },
       });
 
@@ -92,6 +95,20 @@ export class OrdersService {
           `The order with code ${ordcod} cannot be found`,
         );
       }
+
+      let state;
+      if (foundOrder.estcod) {
+        const foundState = await this.prismaService.estados.findFirst({
+          where: {
+            estcod: foundOrder.estcod,
+          },
+          select: {
+            estnom: true,
+          },
+        });
+        state = foundState?.estnom;
+      } else state = "N/A";
+
       const foundVendor = await this.prismaService.vendedores.findUnique({
         where: { vendcod: foundOrder.vendcod },
         select: {
@@ -119,6 +136,7 @@ export class OrdersService {
           select: {
             prodcod: true,
             prodcost: true,
+            ordprodcan: true,
           },
         });
 
@@ -140,13 +158,29 @@ export class OrdersService {
         },
       });
 
-      const costMap = new Map(
-        foundOrderProducts.map((p) => [p.prodcod, p.prodcost]),
-      );
+      const foundProductTypes =
+        await this.prismaService.tipoproductos.findMany();
+
+      const prodMap = new Map<
+        string,
+        { prodcost: number; ordprodcan: number }
+      >();
+      foundOrderProducts.forEach((p) => {
+        prodMap.set(p.prodcod, {
+          prodcost: p.prodcost || 0,
+          ordprodcan: p.ordprodcan || 0,
+        });
+      });
+      const tipoMap = new Map<string, string>();
+      foundProductTypes.forEach((tipo) => {
+        tipoMap.set(tipo.tipprodcod, tipo.tipprodnom || "N/A");
+      });
 
       const productsWithCost = products.map((product) => ({
         ...product,
-        prodcost: costMap.get(product.prodcod) || 0,
+        prodcost: prodMap.get(product.prodcod)?.prodcost || 0,
+        ordprodcan: prodMap.get(product.prodcod)?.ordprodcan || 0,
+        tipprodnom: tipoMap.get(product.tipprodcod ?? "") || "N/A",
       }));
 
       // return productsWithCost;
@@ -154,7 +188,11 @@ export class OrdersService {
       const OrderResponse = {
         ordcod: foundOrder.ordcod,
         ordfec: foundOrder.ordfec,
+        pagocod: foundOrder.pagocod,
+        moncod: foundOrder.moncod,
+        state,
         ordnumfac: foundOrder.ordnumfac,
+        ordobs: foundOrder.ordobs || "N/A",
         vendcod: foundOrder.vendcod || "N/A",
         vendnom: foundVendor?.vendnom || "N/A",
         clicod: foundOrder.clicod || "N/A",
@@ -193,13 +231,14 @@ export class OrdersService {
     const {
       ordcod,
       ordfec,
+      ordfecpro,
       ordnumfac,
       vendcod,
       clicod,
-      ordfecpro,
+      ordcom,
       ordmon,
       ordcos,
-      ordcom,
+      ordnuev,
       pagocod,
       clidir,
       estcod,
@@ -221,20 +260,20 @@ export class OrdersService {
           ordcos,
           ordcom,
           pagocod,
-          ordnuev: "V1",
+          ordnuev,
         },
       });
 
       const dataToInsert = orderProduct.map((product) => ({
         ordcod,
-        ordprodcod: product.ordprodcod,
         prodcod: product.prodcod,
         provcod: product.provcod,
-        ordprodcon: product.ordprodcon,
         ordprodcan: product.ordprodcan,
-        ordprodpre: product.prodcost,
         ordprodlle: false,
         prodcost: product.prodcost,
+        // ordprodcod: product.ordprodcod,
+        // ordprodcon: product.ordprodcon,
+        // ordprodpre: product.prodcost,
       }));
 
       await this.prismaService.ordenesproductos.createMany({
@@ -299,14 +338,14 @@ export class OrdersService {
 
         const dataToInsert = orderProduct.map((product) => ({
           ordcod,
-          ordprodcod: product.ordprodcod,
-          prodcod: product.prodcod,
-          provcod: product.provcod,
-          ordprodcon: product.ordprodcon,
-          ordprodcan: product.ordprodcan,
-          ordprodpre: product.prodcost,
-          ordprodlle: false,
-          prodcost: product.prodcost,
+        prodcod: product.prodcod,
+        provcod: product.provcod,
+        ordprodcan: product.ordprodcan,
+        ordprodlle: false,
+        prodcost: product.prodcost,
+        // ordprodcod: product.ordprodcod,
+        // ordprodcon: product.ordprodcon,
+        // ordprodpre: product.prodcost,
         }));
 
         await this.prismaService.ordenesproductos.createMany({

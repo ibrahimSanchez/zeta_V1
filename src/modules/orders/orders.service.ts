@@ -25,7 +25,6 @@ export class OrdersService {
   //todo: *********************************************************************************
   async getAllOrders() {
     const allOrders = await this.prismaService.ordenes.findMany({
-      take: 100,
       select: {
         ordcod: true,
         ordnumfac: true,
@@ -114,6 +113,7 @@ export class OrdersService {
             estnom: true,
           },
         });
+        state = foundState?.estnom;
       } else state = "N/A";
 
       const foundVendor = await this.prismaService.vendedores.findUnique({

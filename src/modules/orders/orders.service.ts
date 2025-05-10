@@ -12,6 +12,7 @@ import { UpdateOrderDto } from "./dto/update-order.dto";
 import { SupplierService } from "../supplier/supplier.service";
 import { PaymentMethodService } from "../payment-method/payment-method.service";
 import { CurrencyService } from "../currency/currency.service";
+import { ClientService } from "../client/client.service";
 
 @Injectable()
 export class OrdersService {
@@ -20,6 +21,7 @@ export class OrdersService {
     private readonly supplierService: SupplierService,
     private readonly currencyService: CurrencyService,
     private readonly paymentMethodService: PaymentMethodService,
+    private readonly clientService: ClientService,
   ) {}
 
   //todo: *********************************************************************************
@@ -255,7 +257,6 @@ export class OrdersService {
   //todo: *********************************************************************************
   async createOrder(createOrderDto: CreateOrderDto) {
     const {
-      ordcod,
       ordfec,
       ordfecpro,
       ordnumfac,
@@ -266,37 +267,44 @@ export class OrdersService {
       ordcos,
       ordnuev,
       pagocod,
-      clidir,
       estcod,
+      moncod,
+      ordobs,
       orderProduct,
     } = createOrderDto;
 
     try {
-      await this.prismaService.ordenes.create({
+      const foundClient = await this.clientService.getClientByClicod(
+        clicod || "",
+      );
+      const createOrder = await this.prismaService.ordenes.create({
         data: {
-          ordcod,
-          vendcod,
-          clidir,
           ordfec,
           ordfecpro,
-          estcod,
           ordnumfac,
+          vendcod,
           clicod,
-          ordmon,
-          ordcos,
           ordcom,
+          ordmon,
+          estcod,
+          moncod,
           pagocod,
+          ordcos,
           ordnuev,
+          ordobs,
+
+          clidir: foundClient.clidir || "",
         },
       });
 
       const dataToInsert = orderProduct.map((product) => ({
-        ordcod,
+        ordcod: createOrder.ordcod,
         prodcod: product.prodcod,
-        provcod: product.provcod,
-        ordprodcan: product.ordprodcan,
-        ordprodlle: false,
         prodcost: product.prodcost,
+        ordprodcan: product.ordprodcan,
+        provcod: product.provcod,
+        ordprodlle: false,
+
         // ordprodcod: product.ordprodcod,
         // ordprodcon: product.ordprodcon,
         // ordprodpre: product.prodcost,
@@ -326,16 +334,19 @@ export class OrdersService {
   ): Promise<ordenes> {
     const {
       ordfec,
+      ordfecpro,
       ordnumfac,
       vendcod,
       clicod,
-      ordfecpro,
+      ordcom,
       ordmon,
       ordcos,
-      ordcom,
+      ordnuev,
       pagocod,
-      clidir,
       estcod,
+      moncod,
+      ordobs,
+      clidir,
       orderProduct,
     } = updateOrderDto;
 
@@ -344,16 +355,19 @@ export class OrdersService {
         where: { ordcod },
         data: {
           ordfec,
+          ordfecpro,
           ordnumfac,
           vendcod,
           clicod,
-          ordfecpro,
+          ordcom,
           ordmon,
           ordcos,
-          ordcom,
+          ordnuev,
           pagocod,
-          clidir,
           estcod,
+          moncod,
+          ordobs,
+          clidir,
         },
       });
 

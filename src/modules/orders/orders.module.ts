@@ -5,6 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SupplierService } from "../supplier/supplier.service";
 import { CurrencyService } from "../currency/currency.service";
 import { PaymentMethodService } from "../payment-method/payment-method.service";
+import { ClientService } from "../client/client.service";
 
 @Module({
   controllers: [OrdersController],
@@ -14,6 +15,7 @@ import { PaymentMethodService } from "../payment-method/payment-method.service";
     SupplierService,
     CurrencyService,
     PaymentMethodService,
+    ClientService,
   ],
 })
 export class OrdersModule {}

@@ -111,7 +111,7 @@ model monedas {
 }
 
 model ordenes {
-  ordcod    Int      @id
+  ordcod    Int      @id @default(autoincrement())
   vendcod   Int
   clicod    String?
   clidir    String   @db.VarChar(255)

@@ -274,7 +274,7 @@ export class OrdersService {
   }
 
   //todo: *********************************************************************************
- async createOrder(createOrderDto: CreateOrderDto) {
+  async createOrder(createOrderDto: CreateOrderDto) {
     const {
       ordfec,
       ordfecpro,
@@ -298,99 +298,101 @@ export class OrdersService {
     });
 
     if (existOrder) {
-      throw new ConflictException('La orden ya está registrada');
+      throw new ConflictException();
     }
 
     try {
-      const foundClient = await this.clientService.getClientByClicod(clicod || "");
+      const foundClient = await this.clientService.getClientByClicod(
+        clicod || "",
+      );
 
-      // Usar transacción para asegurar atomicidad
-      return await this.prismaService.$transaction(async (prisma) => {
-        // Obtener último ordcod
-        const lastOrder = await prisma.ordenes.findFirst({
-          orderBy: { ordcod: "desc" },
-          select: { ordcod: true },
-        });
+      // Obtener último ordcod
+      const lastOrder = await this.prismaService.ordenes.findFirst({
+        orderBy: { ordcod: "desc" },
+        select: { ordcod: true },
+      });
 
-        const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
+      const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
 
-        // Crear la orden principal
-        const createdOrder = await prisma.ordenes.create({
-          data: {
-            ordcod: nextOrdcod,
-            ordfec,
-            ordfecpro,
-            ordnumfac,
-            vendcod,
-            clicod,
-            ordcom,
-            ordmon,
-            estcod,
-            moncod,
-            pagocod,
-            ordcos,
-            ordnuev,
-            ordobs,
-            ordins: false,
-            ordent: false,
-            ordace: false,
-            ordretcli: false,
-            ordretdec: false,
-            ordentven: false,
-            ordinstec: false,
-            ordrev: false,
-            clidir: foundClient.clidir || "",
-          },
-        });
+      // Preparar datos de la orden
+      const orderData = {
+        ordcod: nextOrdcod,
+        ordfec,
+        ordfecpro,
+        ordnumfac,
+        vendcod,
+        clicod,
+        ordcom,
+        ordmon,
+        estcod,
+        moncod,
+        pagocod,
+        ordcos,
+        ordnuev,
+        ordobs,
+        ordins: false,
+        ordent: false,
+        ordace: false,
+        ordretcli: false,
+        ordretdec: false,
+        ordentven: false,
+        ordinstec: false,
+        ordrev: false,
+        clidir: foundClient.clidir || "",
+      };
 
-        // Obtener último ordprodcod
-        const lastOrderProdCod = await prisma.ordenesproductos.findFirst({
+      // Obtener último ordprodcod
+      const lastOrderProdCod =
+        await this.prismaService.ordenesproductos.findFirst({
           orderBy: { ordprodcod: "desc" },
           select: { ordprodcod: true },
         });
 
-        const nextProdOrdCod = lastOrderProdCod?.ordprodcod ? lastOrderProdCod.ordprodcod + 1 : 1;
+      const nextProdOrdCod = lastOrderProdCod?.ordprodcod
+        ? lastOrderProdCod.ordprodcod + 1
+        : 1;
 
-        // Preparar productos
-        const productsToCreate = orderProduct.map((product, index) => ({
-          ordcod: createdOrder.ordcod,
-          ordprodcod: nextProdOrdCod + index, // Incrementar por cada producto
-          prodcod: product.prodcod,
-          prodcost: product.prodcost,
-          prodvent: product.prodvent,
-          ordprodcan: product.ordprodcan,
-          provcod: product.provcod,
-          ordprodlle: false,
-        }));
+      // Preparar productos
+      const productsToCreate = orderProduct.map((product, index) => ({
+        ordcod: nextOrdcod,
+        ordprodcod: nextProdOrdCod + index,
+        prodcod: product.prodcod,
+        prodcost: product.prodcost,
+        prodvent: product.prodvent,
+        ordprodcan: product.ordprodcan,
+        provcod: product.provcod,
+        ordprodlle: false,
+      }));
 
-        // Crear productos
-        await prisma.ordenesproductos.createMany({
-          data: productsToCreate,
-          skipDuplicates: true,
-        });
+      // Ejecutar transacción con arreglo de operaciones
+      const [createdOrder, createdProducts] =
+        await this.prismaService.$transaction([
+          this.prismaService.ordenes.create({ data: orderData }),
+          this.prismaService.ordenesproductos.createMany({
+            data: productsToCreate,
+            skipDuplicates: true,
+          }),
+        ]);
 
-        return {
-          ...createdOrder,
-          products: productsToCreate,
-        };
-      });
-
+      return {
+        ...createdOrder,
+        products: productsToCreate,
+      };
     } catch (error) {
       this.logger.error("Error al crear la orden:", error);
-      
+
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
-          throw new ConflictException('La orden ya existe en la base de datos');
+          throw new ConflictException("La orden ya existe en la base de datos");
         }
-        throw new BadRequestException('Datos de orden inválidos');
+        throw new BadRequestException("Datos de orden inválidos");
       }
 
-      // Si el error ya es una excepción HTTP (como el ConflictException anterior)
       if (error?.status && error?.response) {
         throw error;
       }
 
-      throw new InternalServerErrorException('Error al procesar la orden');
+      throw new InternalServerErrorException("Error al procesar la orden");
     }
   }
 
@@ -416,69 +418,89 @@ export class OrdersService {
       clidir,
       orderProduct,
     } = updateOrderDto;
-    console.log("orderProduct", orderProduct);
+
     try {
-      const updatedOrder = await this.prismaService.ordenes.update({
+      // Validar si la orden existe antes de la transacción
+      const existingOrder = await this.prismaService.ordenes.findUnique({
         where: { ordcod },
-        data: {
-          ordfec,
-          ordfecpro,
-          ordnumfac,
-          vendcod,
-          clicod,
-          ordcom,
-          ordmon,
-          ordcos,
-          ordnuev,
-          pagocod,
-          estcod,
-          moncod,
-          ordobs,
-          clidir,
-        },
       });
 
-      if (orderProduct && orderProduct.length > 0) {
-        await this.prismaService.ordenesproductos.deleteMany({
-          where: { ordcod },
-        });
-        // Get the current maximum value of ordcod
-        const lastOrderProdCod =
-          await this.prismaService.ordenesproductos.findFirst({
-            orderBy: {
-              ordprodcod: "desc",
-            },
-            select: {
-              ordprodcod: true,
-            },
-          });
-
-        // Increment the maximum value by 1 to get the next ordcod
-        // If no orders exist, start with 1
-        const nextProdOrdCod = lastOrderProdCod?.ordprodcod
-          ? lastOrderProdCod.ordprodcod + 1
-          : 1;
-        const dataToInsert = orderProduct.map((product) => ({
-          ordcod,
-          ordprodcod: nextProdOrdCod, // Use the next ordcod
-          prodcod: product.prodcod,
-          provcod: product.provcod,
-          ordprodcan: product.ordprodcan,
-          ordprodlle: false,
-          prodcost: product.prodcost,
-          prodvent: product.prodvent,
-          // ordprodcod: product.ordprodcod,
-          // ordprodcon: product.ordprodcon,
-          // ordprodpre: product.prodcost,
-        }));
-        console.log("dataToInsert", dataToInsert);
-        await this.prismaService.ordenesproductos.createMany({
-          data: dataToInsert,
-          skipDuplicates: true,
-        });
+      if (!existingOrder) {
+        throw new NotFoundException(`Order with code ${ordcod} not found`);
       }
 
-      return updatedOrder;
+      // Obtener último ordprodcod antes de la transacción
+      const lastOrderProdCod =
+        await this.prismaService.ordenesproductos.findFirst({
+          orderBy: { ordprodcod: "desc" },
+          select: { ordprodcod: true },
+        });
+
+      const nextProdOrdCod = lastOrderProdCod?.ordprodcod
+        ? lastOrderProdCod.ordprodcod + 1
+        : 1;
+
+      // Preparar datos de productos si vienen en el payload
+      const productsToInsert = (orderProduct || []).map((product, index) => ({
+        ordcod,
+        ordprodcod: nextProdOrdCod + index,
+        prodcod: product.prodcod,
+        provcod: product.provcod,
+        ordprodcan: product.ordprodcan,
+        ordprodlle: false,
+        prodcost: product.prodcost,
+        prodvent: product.prodvent,
+      }));
+
+      // Construir el arreglo de operaciones dentro de la transacción
+      const operations: Prisma.PrismaPromise<any>[] = [];
+
+      // 1. Actualizar la orden
+      operations.push(
+        this.prismaService.ordenes.update({
+          where: { ordcod },
+          data: {
+            ordfec,
+            ordfecpro,
+            ordnumfac,
+            vendcod,
+            clicod,
+            ordcom,
+            ordmon,
+            ordcos,
+            ordnuev,
+            pagocod,
+            estcod,
+            moncod,
+            ordobs,
+            clidir,
+          },
+        }),
+      );
+
+      if (orderProduct && orderProduct.length > 0) {
+        // 2. Eliminar productos anteriores
+        operations.push(
+          this.prismaService.ordenesproductos.deleteMany({
+            where: { ordcod },
+          }),
+        );
+
+        // 3. Insertar nuevos productos
+        operations.push(
+          this.prismaService.ordenesproductos.createMany({
+            data: productsToInsert,
+            skipDuplicates: true,
+          }),
+        );
+      }
+
+      const [updatedOrder] = await this.prismaService.$transaction(operations);
+
+      return {
+        ...updatedOrder,
+        products: productsToInsert,
+      };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2025") {

@@ -31,7 +31,7 @@ export class ProductController {
   }
 
   @Public()
-  @Post('create')
+  @Post("create")
   async createProduct(@Body() createProductDto: CreateProductDto) {
     return this.productService.createProduct(createProductDto);
   }
@@ -60,12 +60,4 @@ export class ProductController {
       );
     }
   }
-
-  @Public()
-  @Post('delete')
-  @HttpCode(200) // 👈 Fuerza el código 200
-  async deleteOrders(@Body() body: { codes: string[] }) {  // Acepta un objeto con `codes`
-    return this.productService.deleteProducts(body);  // Pasa el objeto completo
-  }
-  
 }

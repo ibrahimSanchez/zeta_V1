@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -272,7 +274,7 @@ export class OrdersService {
   }
 
   //todo: *********************************************************************************
-  async createOrder(createOrderDto: CreateOrderDto) {
+ async createOrder(createOrderDto: CreateOrderDto) {
     const {
       ordfec,
       ordfecpro,
@@ -290,102 +292,105 @@ export class OrdersService {
       orderProduct,
     } = createOrderDto;
 
+    // Verificación temprana si la orden existe
+    const existOrder = await this.prismaService.ordenes.findFirst({
+      where: { ordnumfac },
+    });
+
+    if (existOrder) {
+      throw new ConflictException('La orden ya está registrada');
+    }
+
     try {
-      const foundClient = await this.clientService.getClientByClicod(
-        clicod || "",
-      );
+      const foundClient = await this.clientService.getClientByClicod(clicod || "");
 
-      // Get the current maximum value of ordcod
-      const lastOrder = await this.prismaService.ordenes.findFirst({
-        orderBy: {
-          ordcod: "desc",
-        },
-        select: {
-          ordcod: true,
-        },
-      });
+      // Usar transacción para asegurar atomicidad
+      return await this.prismaService.$transaction(async (prisma) => {
+        // Obtener último ordcod
+        const lastOrder = await prisma.ordenes.findFirst({
+          orderBy: { ordcod: "desc" },
+          select: { ordcod: true },
+        });
 
-      // Increment the maximum value by 1 to get the next ordcod
-      // If no orders exist, start with 1
-      const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
+        const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
 
-      // Create the new order with the next ordcod
-      const createOrder = await this.prismaService.ordenes.create({
-        data: {
-          ordcod: nextOrdcod, // Use the next ordcod
-          ordfec,
-          ordfecpro,
-          ordnumfac,
-          vendcod,
-          clicod,
-          ordcom,
-          ordmon,
-          estcod,
-          moncod,
-          pagocod,
-          ordcos,
-          ordnuev,
-          ordobs,
-          ordins: false, // Assuming this is a default value
-          ordent: false, // Assuming this is a default value
-          ordace: false, // Assuming this is a default value
-          ordretcli: false, // Assuming this is a default value
-          ordretdec: false, // Assuming this is a default value
-          ordentven: false, // Assuming this is a default value
-          ordinstec: false, // Assuming this is a default value
-          ordrev: false, // Assuming this is a default value
-          clidir: foundClient.clidir || "",
-        },
-      });
-
-      // Get the current maximum value of ordcod
-      const lastOrderProdCod =
-        await this.prismaService.ordenesproductos.findFirst({
-          orderBy: {
-            ordprodcod: "desc",
-          },
-          select: {
-            ordprodcod: true,
+        // Crear la orden principal
+        const createdOrder = await prisma.ordenes.create({
+          data: {
+            ordcod: nextOrdcod,
+            ordfec,
+            ordfecpro,
+            ordnumfac,
+            vendcod,
+            clicod,
+            ordcom,
+            ordmon,
+            estcod,
+            moncod,
+            pagocod,
+            ordcos,
+            ordnuev,
+            ordobs,
+            ordins: false,
+            ordent: false,
+            ordace: false,
+            ordretcli: false,
+            ordretdec: false,
+            ordentven: false,
+            ordinstec: false,
+            ordrev: false,
+            clidir: foundClient.clidir || "",
           },
         });
 
-      // Increment the maximum value by 1 to get the next ordcod
-      // If no orders exist, start with 1
-      const nextProdOrdCod = lastOrderProdCod?.ordprodcod
-        ? lastOrderProdCod.ordprodcod + 1
-        : 1;
-      const dataToInsert = orderProduct.map((product) => ({
-        ordcod: createOrder.ordcod,
-        ordprodcod: nextProdOrdCod, // Use the next ordcod
-        prodcod: product.prodcod,
-        prodcost: product.prodcost,
-        prodvent: product.prodvent,
-        ordprodcan: product.ordprodcan,
-        provcod: product.provcod,
-        ordprodlle: false,
+        // Obtener último ordprodcod
+        const lastOrderProdCod = await prisma.ordenesproductos.findFirst({
+          orderBy: { ordprodcod: "desc" },
+          select: { ordprodcod: true },
+        });
 
-        // ordprodcod: product.ordprodcod,
-        // ordprodcon: product.ordprodcon,
-        // ordprodpre: product.prodcost,
-      }));
+        const nextProdOrdCod = lastOrderProdCod?.ordprodcod ? lastOrderProdCod.ordprodcod + 1 : 1;
 
-      this.logger.debug("Data to insert into ordenesproductos:", dataToInsert);
+        // Preparar productos
+        const productsToCreate = orderProduct.map((product, index) => ({
+          ordcod: createdOrder.ordcod,
+          ordprodcod: nextProdOrdCod + index, // Incrementar por cada producto
+          prodcod: product.prodcod,
+          prodcost: product.prodcost,
+          prodvent: product.prodvent,
+          ordprodcan: product.ordprodcan,
+          provcod: product.provcod,
+          ordprodlle: false,
+        }));
 
-      await this.prismaService.ordenesproductos.createMany({
-        data: dataToInsert,
-        skipDuplicates: true,
+        // Crear productos
+        await prisma.ordenesproductos.createMany({
+          data: productsToCreate,
+          skipDuplicates: true,
+        });
+
+        return {
+          ...createdOrder,
+          products: productsToCreate,
+        };
       });
 
-      return createOrderDto;
     } catch (error) {
-      this.logger.error("Error al crear la orden:", error); // Log del error completo
+      this.logger.error("Error al crear la orden:", error);
+      
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
-          throw new ConflictException("order already exists");
+          throw new ConflictException('La orden ya existe en la base de datos');
         }
-        throw new BadRequestException("Invalid order data");
+        throw new BadRequestException('Datos de orden inválidos');
       }
-      throw new InternalServerErrorException("Failed to create order");
+
+      // Si el error ya es una excepción HTTP (como el ConflictException anterior)
+      if (error?.status && error?.response) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException('Error al procesar la orden');
     }
   }
 

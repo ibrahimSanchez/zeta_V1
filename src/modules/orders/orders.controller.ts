@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Patch, Post } from "@nestjs/common";
 import { OrdersService } from "./orders.service";
 import { Public } from "../auth/decorators/public.decorator";
 import { CreateOrderDto } from "./dto/create-order.dto";
@@ -37,7 +37,8 @@ export class OrdersController {
 
   @Public()
   @Post('delete')
-  async deleteOrders(@Body() ordcods: number[]) {
-    return this.ordersService.deleteOrders(ordcods);
+  @HttpCode(200) // 👈 Fuerza el código 200
+  async deleteOrders(@Body() body: { codes: number[] }) {  // Acepta un objeto con `codes`
+    return this.ordersService.deleteOrders(body);  // Pasa el objeto completo
   }
 }

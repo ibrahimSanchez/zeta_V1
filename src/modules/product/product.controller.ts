@@ -7,6 +7,7 @@ import {
   Param,
   HttpException,
   HttpStatus,
+  HttpCode,
 } from "@nestjs/common";
 import { ProductService } from "./product.service";
 import { CreateProductDto } from "./dto/create-product.dto";
@@ -59,4 +60,12 @@ export class ProductController {
       );
     }
   }
+
+  @Public()
+  @Post('delete')
+  @HttpCode(200) // 👈 Fuerza el código 200
+  async deleteOrders(@Body() body: { codes: string[] }) {  // Acepta un objeto con `codes`
+    return this.productService.deleteProducts(body);  // Pasa el objeto completo
+  }
+  
 }

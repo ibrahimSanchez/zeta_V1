@@ -13,9 +13,11 @@ import { SupplierService } from "../supplier/supplier.service";
 import { PaymentMethodService } from "../payment-method/payment-method.service";
 import { CurrencyService } from "../currency/currency.service";
 import { ClientService } from "../client/client.service";
+import { Logger } from "@nestjs/common"; // Importa Logger
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
   constructor(
     private prismaService: PrismaService,
     private readonly supplierService: SupplierService,
@@ -148,6 +150,7 @@ export class OrdersService {
           select: {
             prodcod: true,
             prodcost: true,
+            prodvent: true,
             ordprodcan: true,
             provcod: true,
           },
@@ -176,15 +179,22 @@ export class OrdersService {
 
       const prodMap = new Map<
         string,
-        { prodcost: number; ordprodcan: number; provcod: string | null }
+        {
+          prodvent: number;
+          prodcost: number;
+          ordprodcan: number;
+          provcod: string | null;
+        }
       >();
       foundOrderProducts.forEach((p) => {
         prodMap.set(p.prodcod, {
+          prodvent: p.prodvent || 0,
           prodcost: p.prodcost || 0,
           ordprodcan: p.ordprodcan || 0,
           provcod: p.provcod || null,
         });
       });
+
       const tipoMap = new Map<string, string>();
       foundProductTypes.forEach((tipo) => {
         tipoMap.set(tipo.tipprodcod, tipo.tipprodnom || "N/A");
@@ -192,11 +202,18 @@ export class OrdersService {
 
       const productsWithCost = products.map((product) => ({
         ...product,
+        prodvent: prodMap.get(product.prodcod)?.prodvent || 0,
         prodcost: prodMap.get(product.prodcod)?.prodcost || 0,
         ordprodcan: prodMap.get(product.prodcod)?.ordprodcan || 0,
         tipprodnom: tipoMap.get(product.tipprodcod ?? "") || "N/A",
-        provnom: foundSuppliers.find((s) => s.provcod === s.provcod)?.provnom,
-        provcod: foundSuppliers.find((s) => s.provcod === s.provcod)?.provcod,
+        provnom:
+          foundSuppliers.find(
+            (s) => s.provcod === prodMap.get(product.prodcod)?.provcod,
+          )?.provnom || "N/A",
+        provcod:
+          foundSuppliers.find(
+            (s) => s.provcod === prodMap.get(product.prodcod)?.provcod,
+          )?.provcod || null,
       }));
 
       let foundCurrencies;
@@ -214,9 +231,9 @@ export class OrdersService {
         ordcod: foundOrder.ordcod,
         ordfec: foundOrder.ordfec,
         pagocod: foundOrder.pagocod,
-        pagonom: foundPaymentMethods.pagonom,
+        pagonom: foundPaymentMethods?.pagonom || null,
         moncod: foundOrder.moncod,
-        monnom: foundCurrencies.monnom,
+        monnom: foundCurrencies?.monnom || null,
         estcod: foundOrder.estcod,
         estnom: state,
         ordnumfac: foundOrder.ordnumfac,
@@ -277,8 +294,25 @@ export class OrdersService {
       const foundClient = await this.clientService.getClientByClicod(
         clicod || "",
       );
+
+      // Get the current maximum value of ordcod
+      const lastOrder = await this.prismaService.ordenes.findFirst({
+        orderBy: {
+          ordcod: "desc",
+        },
+        select: {
+          ordcod: true,
+        },
+      });
+
+      // Increment the maximum value by 1 to get the next ordcod
+      // If no orders exist, start with 1
+      const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
+
+      // Create the new order with the next ordcod
       const createOrder = await this.prismaService.ordenes.create({
         data: {
+          ordcod: nextOrdcod, // Use the next ordcod
           ordfec,
           ordfecpro,
           ordnumfac,
@@ -292,15 +326,40 @@ export class OrdersService {
           ordcos,
           ordnuev,
           ordobs,
-
+          ordins: false, // Assuming this is a default value
+          ordent: false, // Assuming this is a default value
+          ordace: false, // Assuming this is a default value
+          ordretcli: false, // Assuming this is a default value
+          ordretdec: false, // Assuming this is a default value
+          ordentven: false, // Assuming this is a default value
+          ordinstec: false, // Assuming this is a default value
+          ordrev: false, // Assuming this is a default value
           clidir: foundClient.clidir || "",
         },
       });
 
+      // Get the current maximum value of ordcod
+      const lastOrderProdCod =
+        await this.prismaService.ordenesproductos.findFirst({
+          orderBy: {
+            ordprodcod: "desc",
+          },
+          select: {
+            ordprodcod: true,
+          },
+        });
+
+      // Increment the maximum value by 1 to get the next ordcod
+      // If no orders exist, start with 1
+      const nextProdOrdCod = lastOrderProdCod?.ordprodcod
+        ? lastOrderProdCod.ordprodcod + 1
+        : 1;
       const dataToInsert = orderProduct.map((product) => ({
         ordcod: createOrder.ordcod,
+        ordprodcod: nextProdOrdCod, // Use the next ordcod
         prodcod: product.prodcod,
         prodcost: product.prodcost,
+        prodvent: product.prodvent,
         ordprodcan: product.ordprodcan,
         provcod: product.provcod,
         ordprodlle: false,
@@ -310,6 +369,8 @@ export class OrdersService {
         // ordprodpre: product.prodcost,
       }));
 
+      this.logger.debug("Data to insert into ordenesproductos:", dataToInsert);
+
       await this.prismaService.ordenesproductos.createMany({
         data: dataToInsert,
         skipDuplicates: true,
@@ -317,6 +378,7 @@ export class OrdersService {
 
       return createOrderDto;
     } catch (error) {
+      this.logger.error("Error al crear la orden:", error); // Log del error completo
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
           throw new ConflictException("order already exists");
@@ -349,7 +411,7 @@ export class OrdersService {
       clidir,
       orderProduct,
     } = updateOrderDto;
-
+    console.log("orderProduct", orderProduct);
     try {
       const updatedOrder = await this.prismaService.ordenes.update({
         where: { ordcod },
@@ -375,19 +437,36 @@ export class OrdersService {
         await this.prismaService.ordenesproductos.deleteMany({
           where: { ordcod },
         });
+        // Get the current maximum value of ordcod
+        const lastOrderProdCod =
+          await this.prismaService.ordenesproductos.findFirst({
+            orderBy: {
+              ordprodcod: "desc",
+            },
+            select: {
+              ordprodcod: true,
+            },
+          });
 
+        // Increment the maximum value by 1 to get the next ordcod
+        // If no orders exist, start with 1
+        const nextProdOrdCod = lastOrderProdCod?.ordprodcod
+          ? lastOrderProdCod.ordprodcod + 1
+          : 1;
         const dataToInsert = orderProduct.map((product) => ({
           ordcod,
+          ordprodcod: nextProdOrdCod, // Use the next ordcod
           prodcod: product.prodcod,
           provcod: product.provcod,
           ordprodcan: product.ordprodcan,
           ordprodlle: false,
           prodcost: product.prodcost,
+          prodvent: product.prodvent,
           // ordprodcod: product.ordprodcod,
           // ordprodcon: product.ordprodcon,
           // ordprodpre: product.prodcost,
         }));
-
+        console.log("dataToInsert", dataToInsert);
         await this.prismaService.ordenesproductos.createMany({
           data: dataToInsert,
           skipDuplicates: true,
@@ -407,27 +486,42 @@ export class OrdersService {
   }
 
   //todo: *********************************************************************************
-  async deleteOrders(ordcods: number[]) {
+  async deleteOrders(params: { codes: number[] }) {
     try {
-      const deleted = await this.prismaService.ordenes.deleteMany({
-        where: { ordcod: { in: ordcods } },
-      });
+      const { codes } = params;
+      console.log("IDs a eliminar:", codes);
 
-      if (deleted.count === 0) {
-        throw new NotFoundException(`No orders found with the given codes`);
-      }
+      // Usar una transacción para eliminar en ambas tablas
+      const result = await this.prismaService.$transaction([
+        // 1. Primero eliminar los productos relacionados
+        this.prismaService.ordenesproductos.deleteMany({
+          where: { ordcod: { in: codes } },
+        }),
+        // 2. Luego eliminar las órdenes
+        this.prismaService.ordenes.deleteMany({
+          where: { ordcod: { in: codes } },
+        }),
+      ]);
 
-      return {
-        message: `Deleted ${deleted.count} order(s) successfully.`,
-      };
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw new InternalServerErrorException(
-          "Database error while deleting order(s)",
+      const [deletedProducts, deletedOrders] = result;
+
+      if (deletedOrders.count === 0) {
+        throw new NotFoundException(
+          `No se encontraron órdenes con IDs: ${codes}`,
         );
       }
 
-      throw new InternalServerErrorException("Failed to delete order(s)");
+      return {
+        message: `Se eliminaron ${deletedOrders.count} orden(es) y ${deletedProducts.count} producto(s) asociados.`,
+      };
+    } catch (error) {
+      console.error("Error al eliminar órdenes:", error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        throw new InternalServerErrorException(
+          "Error de base de datos al eliminar órdenes",
+        );
+      }
+      throw error; // Re-lanza otros errores (como el NotFoundException)
     }
   }
 }

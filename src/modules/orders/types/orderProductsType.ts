@@ -4,5 +4,6 @@ export interface OrderProductType {
   provcod: string;
   // ordprodcon: string;
   prodcost: number;
+  prodvent: number;
   ordprodcan: number;
 }

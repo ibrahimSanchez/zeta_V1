@@ -14,9 +14,11 @@ import { Prisma, productos } from "@prisma/client";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { ProductTypeService } from "../product-type/product-type.service";
 import { ProductResponse } from "./types/productResponse";
+import { Logger } from '@nestjs/common'; // Importa Logger
 
 @Injectable()
 export class ProductService {
+  private readonly logger = new Logger(ProductService.name);
   constructor(
     private prismaService: PrismaService,
     private readonly productTypeService: ProductTypeService,
@@ -37,12 +39,20 @@ export class ProductService {
           (type) => type.tipprodcod === product.tipprodcod,
         );
 
+        // Verifica si el producto está en una orden de trabajo
+        const estaEnOrden = this.prismaService.ordenesproductos.findFirst({
+          where: {
+            prodcod: product.prodcod,
+          },
+        });
+
         return {
           prodcod: product.prodcod,
           prodnom: product.prodnom,
           family: family || null,
           components: [],
           componentsExist: product.parentproductid ? true : false,
+          inUse: !!estaEnOrden,
         };
       });
 
@@ -377,6 +387,55 @@ export class ProductService {
         return Currencies.eu;
       default:
         return Currencies.uyu;
+    }
+  }
+
+  //todo: *********************************************************************************
+  async deleteProducts(params: { codes: string[] }): Promise<{ message: string; notDeletedCodes?: string[] }> {
+    const { codes } = params;
+    const notDeletedCodes: string[] = [];
+
+    try {
+      for (const code of codes) {
+        // 1. Verifica si el producto está en una orden de trabajo.
+        const estaEnOrden = await this.prismaService.ordenesproductos.findFirst({
+          where: {
+            prodcod: code,
+          },
+        });
+
+        if (!estaEnOrden) {
+          // 2. Si no está en una orden, elimina el producto.
+          try {
+            await this.prismaService.productos.delete({
+              where: {
+                prodcod: code,
+              },
+            });
+          } catch (deleteError) {
+            // Manejar error al eliminar un producto individual.
+            console.error(`Error al eliminar el producto con código ${code}:`, deleteError);
+            notDeletedCodes.push(code); // Agrega el código a la lista de no eliminados.
+          }
+        } else {
+          // 3. Si está en una orden, agrégalo a la lista de no eliminados.
+          notDeletedCodes.push(code);
+        }
+      }
+
+      // 4. Construye la respuesta.
+      if (notDeletedCodes.length > 0) {
+        return {
+          message:
+            'ErrorDeletingCodes',
+          notDeletedCodes,
+        };
+      }
+
+      return { message: 'Todos los productos proporcionados fueron eliminados exitosamente.' };
+    } catch (error) {
+      console.error('Error al procesar la eliminación de productos:', error);
+      throw new InternalServerErrorException('Error al eliminar productos');
     }
   }
 }

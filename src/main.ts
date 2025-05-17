@@ -19,10 +19,11 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle("API Documentation")
-    // .setDescription("Descripción")
-    .setVersion("1.0")
+    .setTitle('API documentation')
+    // .setDescription('La descripción de la API')
+    .setVersion('1.0')
     .build();
+    
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);
 

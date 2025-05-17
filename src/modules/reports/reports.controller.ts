@@ -1,48 +1,108 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import { Controller, Post, Body } from "@nestjs/common";
 import { ReportsService } from "./reports.service";
 import { Public } from "../auth/decorators/public.decorator";
 import {
-  BrandReportQuery,
-  ClientReportQuery,
-  DatesReportQuery,
-  SupplierReportQuery,
-} from "./types/reportTypes";
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiOkResponse,
+  ApiCreatedResponse,
+} from "@nestjs/swagger";
+import {
+  SwaggerDatesReportQuery,
+  SwaggerClientReportQuery,
+  SwaggerSupplierReportQuery,
+  SwaggerBrandReportQuery,
+  SwaggerClientReportResponse,
+  SwaggerSupplierReportResponse,
+  SwaggerBrandReportResponse,
+  SwaggerBestSellingProduct,
+  SwaggerBasicReportResponse,
+} from "./dto/report.dto";
 
+@ApiTags("Reportes")
 @Controller("reports")
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-
   @Public()
   @Post("date-report")
-  async datesReport(@Body() datesReportQuery: DatesReportQuery) {
+  @ApiOperation({
+    summary: "Reporte por fechas",
+    description: "Genera un reporte de órdenes dentro de un rango de fechas",
+  })
+  @ApiBody({ type: SwaggerDatesReportQuery })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerBasicReportResponse],
+  })
+  async datesReport(@Body() datesReportQuery: SwaggerDatesReportQuery) {
     return this.reportsService.datesReport(datesReportQuery);
   }
 
-
   @Public()
   @Post("client-report")
-  async clientReport(@Body() clientReportQuery: ClientReportQuery) {
+  @ApiOperation({
+    summary: "Reporte por cliente",
+    description: "Genera un reporte de órdenes para un cliente específico",
+  })
+  @ApiBody({ type: SwaggerClientReportQuery })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerClientReportResponse],
+  })
+  async clientReport(@Body() clientReportQuery: SwaggerClientReportQuery) {
     return this.reportsService.clientReport(clientReportQuery);
   }
 
   @Public()
   @Post("supplier-report")
-  async supplierReport(@Body() supplierReportQuery: SupplierReportQuery) {
+  @ApiOperation({
+    summary: "Reporte por proveedor",
+    description: "Genera un reporte de órdenes para un proveedor específico",
+  })
+  @ApiBody({ type: SwaggerSupplierReportQuery })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerSupplierReportResponse],
+  })
+  async supplierReport(
+    @Body() supplierReportQuery: SwaggerSupplierReportQuery,
+  ) {
     return this.reportsService.supplierReport(supplierReportQuery);
   }
 
   @Public()
   @Post("brand-report")
-  async brandReport(@Body() brandReportQuery: BrandReportQuery) {
+  @ApiOperation({
+    summary: "Reporte por marca",
+    description: "Genera un reporte de órdenes para una marca específica",
+  })
+  @ApiBody({ type: SwaggerBrandReportQuery })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerBrandReportResponse],
+  })
+  async brandReport(@Body() brandReportQuery: SwaggerBrandReportQuery) {
     return this.reportsService.brandReport(brandReportQuery.ordmar);
   }
 
-
   @Public()
   @Post("best-selling-products-report")
-  async bestSellingProductsReport(@Body() datesReportQuery: DatesReportQuery) {
+  @ApiOperation({
+    summary: "Reporte de productos más vendidos",
+    description:
+      "Genera un reporte de los productos más vendidos en un período",
+  })
+  @ApiBody({ type: SwaggerDatesReportQuery })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerBestSellingProduct],
+  })
+  async bestSellingProductsReport(
+    @Body() datesReportQuery: SwaggerDatesReportQuery,
+  ) {
     return this.reportsService.bestSellingProductsReport(datesReportQuery);
   }
-
 }

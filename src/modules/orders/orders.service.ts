@@ -31,6 +31,7 @@ export class OrdersService {
   //todo: *********************************************************************************
   async getAllOrders() {
     const allOrders = await this.prismaService.ordenes.findMany({
+      take: 10,
       select: {
         ordcod: true,
         ordnumfac: true,

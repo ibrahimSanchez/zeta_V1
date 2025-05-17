@@ -55,18 +55,20 @@ export class AuthService {
 
       if (foundUser)
         throw new ConflictException(
-          `The user with the email: ${usunom} already exists.`,
+          `The user with the name: ${usunom} already exists.`,
         );
 
       const hashedPassword = await this.hashed(usucla);
       createUserDto.usucla = hashedPassword;
+      
+      console.log(createUserDto)
       return await this.userService.create(createUserDto);
     } catch (error) {
       console.log(error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") {
           throw new ConflictException(
-            `The user with the email: ${usunom} already exists.`,
+            `The user with the name: ${usunom} already exists.`,
           );
         }
       }

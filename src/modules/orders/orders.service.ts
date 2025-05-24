@@ -365,19 +365,58 @@ export class OrdersService {
         ordprodlle: false,
       }));
 
-      // Ejecutar transacción con arreglo de operaciones
-      const [createdOrder, createdProducts] =
-        await this.prismaService.$transaction([
-          this.prismaService.ordenes.create({ data: orderData }),
-          this.prismaService.ordenesproductos.createMany({
-            data: productsToCreate,
-            skipDuplicates: true,
-          }),
-        ]);
+      // Extraer ítems de los productos
+      const itemsToCreate = orderProduct.flatMap((product) => {
+        if (product.items?.length) {
+          return product.items.map((item) => ({
+            itemcom: item.itemcom,
+            itemest: item.itemest,
+            itemgas: item.itemgas,
+            itemven: item.itemven,
+            prodcod: item.prodcod,
+          }));
+        }
+        return [];
+      });
 
+      // Ejecutar transacción en pasos
+      let createdOrder;
+
+      // Extrae productos únicos de orderProduct para insertar en tabla productos
+      const baseProductsToCreate = orderProduct.map((product) => ({
+        prodcod: product.prodcod,
+        prodnom: "Nombre temporal", // Ajusta según tu lógica
+        tipprodcod: null,
+        parentproductid: null,
+      }));
+
+      await this.prismaService.$transaction(async (tx) => {
+        createdOrder = await tx.ordenes.create({ data: orderData });
+
+        // Asegúrate que los productos base existan en la tabla productos
+        await tx.productos.createMany({
+          data: baseProductsToCreate,
+          skipDuplicates: true, // Evita errores si ya existen
+        });
+
+        await tx.ordenesproductos.createMany({
+          data: productsToCreate,
+          skipDuplicates: true,
+        });
+
+        if (itemsToCreate.length > 0) {
+          await tx.items.createMany({
+            data: itemsToCreate,
+            skipDuplicates: true,
+          });
+        }
+      });
+
+      // Retornar respuesta al cliente
       return {
         ...createdOrder,
         products: productsToCreate,
+        items: itemsToCreate, // opcional, si deseas incluirlos
       };
     } catch (error) {
       this.logger.error("Error al crear la orden:", error);
@@ -401,7 +440,7 @@ export class OrdersService {
   async updateOrder(
     ordcod: number,
     updateOrderDto: UpdateOrderDto,
-  ): Promise<ordenes> {
+  ): Promise<any> {
     const {
       ordfec,
       ordfecpro,
@@ -421,7 +460,6 @@ export class OrdersService {
     } = updateOrderDto;
 
     try {
-      // Validar si la orden existe antes de la transacción
       const existingOrder = await this.prismaService.ordenes.findUnique({
         where: { ordcod },
       });
@@ -430,7 +468,6 @@ export class OrdersService {
         throw new NotFoundException(`Order with code ${ordcod} not found`);
       }
 
-      // Obtener último ordprodcod antes de la transacción
       const lastOrderProdCod =
         await this.prismaService.ordenesproductos.findFirst({
           orderBy: { ordprodcod: "desc" },
@@ -441,8 +478,9 @@ export class OrdersService {
         ? lastOrderProdCod.ordprodcod + 1
         : 1;
 
-      // Preparar datos de productos si vienen en el payload
-      const productsToInsert = (orderProduct || []).map((product, index) => ({
+      const safeOrderProduct = orderProduct ?? []; // ✅ manejo seguro
+
+      const productsToInsert = safeOrderProduct.map((product, index) => ({
         ordcod,
         ordprodcod: nextProdOrdCod + index,
         prodcod: product.prodcod,
@@ -453,12 +491,26 @@ export class OrdersService {
         prodvent: product.prodvent,
       }));
 
-      // Construir el arreglo de operaciones dentro de la transacción
-      const operations: Prisma.PrismaPromise<any>[] = [];
+      const itemsToInsert = safeOrderProduct.flatMap(
+        (product) =>
+          product.items?.map((item) => ({
+            itemcom: item.itemcom,
+            itemest: item.itemest,
+            itemgas: item.itemgas,
+            itemven: item.itemven,
+            prodcod: item.prodcod,
+          })) ?? [],
+      );
 
-      // 1. Actualizar la orden
-      operations.push(
-        this.prismaService.ordenes.update({
+      const baseProductsToCreate = safeOrderProduct.map((product) => ({
+        prodcod: product.prodcod,
+        prodnom: "Nombre temporal",
+        tipprodcod: null,
+        parentproductid: null,
+      }));
+
+      const result = await this.prismaService.$transaction(async (tx) => {
+        const updatedOrder = await tx.ordenes.update({
           where: { ordcod },
           data: {
             ordfec,
@@ -476,31 +528,45 @@ export class OrdersService {
             ordobs,
             clidir,
           },
-        }),
-      );
+        });
 
-      if (orderProduct && orderProduct.length > 0) {
-        // 2. Eliminar productos anteriores
-        operations.push(
-          this.prismaService.ordenesproductos.deleteMany({
-            where: { ordcod },
-          }),
-        );
+        // Asegurar productos base en la tabla "productos"
+        await tx.productos.createMany({
+          data: baseProductsToCreate,
+          skipDuplicates: true,
+        });
 
-        // 3. Insertar nuevos productos
-        operations.push(
-          this.prismaService.ordenesproductos.createMany({
-            data: productsToInsert,
+        // Eliminar productos y ítems anteriores
+        await tx.ordenesproductos.deleteMany({ where: { ordcod } });
+        await tx.items.deleteMany({
+          where: {
+            prodcod: {
+              in: safeOrderProduct.map((p) => p.prodcod),
+            },
+          },
+        });
+
+        // Insertar productos nuevos
+        await tx.ordenesproductos.createMany({
+          data: productsToInsert,
+          skipDuplicates: true,
+        });
+
+        // Insertar ítems nuevos
+        if (itemsToInsert.length > 0) {
+          await tx.items.createMany({
+            data: itemsToInsert,
             skipDuplicates: true,
-          }),
-        );
-      }
+          });
+        }
 
-      const [updatedOrder] = await this.prismaService.$transaction(operations);
+        return updatedOrder;
+      });
 
       return {
-        ...updatedOrder,
+        ...result,
         products: productsToInsert,
+        items: itemsToInsert,
       };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -509,6 +575,7 @@ export class OrdersService {
         }
         throw new BadRequestException("Invalid order data");
       }
+
       throw new InternalServerErrorException("Failed to update order");
     }
   }

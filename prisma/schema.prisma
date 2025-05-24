@@ -181,7 +181,23 @@ model productos {
   tipprodcod      String? @db.VarChar(50)
   parentproductid String? @db.VarChar(50)
 
+  items items[]
+
   @@map("productos")
+}
+
+model items {
+  itemcod Int      @id @default(autoincrement())
+  itemven Float
+  itemcom Float
+  itemgas Float
+  itemfec DateTime @default(now())
+  itemest String   @db.VarChar(20)
+  prodcod String   @db.VarChar(50)
+
+  productos productos @relation(fields: [prodcod], references: [prodcod])
+
+  @@map("items")
 }
 
 model proveedores {

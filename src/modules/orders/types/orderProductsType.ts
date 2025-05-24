@@ -1,3 +1,5 @@
+import { CreateItemDto } from "src/modules/items/dto/create-item.dto";
+
 export interface OrderProductType {
   // ordprodcod: number;
   prodcod: string;
@@ -6,4 +8,6 @@ export interface OrderProductType {
   prodcost: number;
   prodvent: number;
   ordprodcan: number;
+
+  items: CreateItemDto[];
 }

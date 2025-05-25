@@ -31,7 +31,6 @@ export class OrdersService {
   //todo: *********************************************************************************
   async getAllOrders() {
     const allOrders = await this.prismaService.ordenes.findMany({
-      take: 10,
       select: {
         ordcod: true,
         ordnumfac: true,
@@ -64,6 +63,14 @@ export class OrdersService {
       const vendor = allVendors.find((v) => v.vendcod === order.vendcod);
       const client = allClients.find((c) => c.clicod === order.clicod);
 
+      const { ordcos, ordmon, ordcom } = order;
+        let profitPercentage;
+        if (ordcos === null || ordmon === null || ordcom === null) {
+          profitPercentage = "N/A";
+        } else {
+          const g = ordmon - ordcos - ordcom * 100;
+          profitPercentage = g / ordmon;
+        }
       return {
         ordcod: order.ordcod,
         ordnumfac: order.ordnumfac,
@@ -75,9 +82,11 @@ export class OrdersService {
         ordcos: order.ordcos || 0,
         ordcom: order.ordcom || 0,
         proposal: order.ordfecpro,
+        profitPercentage
       };
     });
 
+    // console.log(listOrdersResponse)
     return listOrdersResponse;
   }
 
@@ -156,6 +165,7 @@ export class OrdersService {
             prodvent: true,
             ordprodcan: true,
             provcod: true,
+            prodgast: true
           },
         });
 
@@ -197,6 +207,7 @@ export class OrdersService {
           prodcost: number;
           ordprodcan: number;
           provcod: string | null;
+          prodgast: number
         }
       >();
       foundOrderProducts.forEach((p) => {
@@ -205,6 +216,7 @@ export class OrdersService {
           prodcost: p.prodcost || 0,
           ordprodcan: p.ordprodcan || 0,
           provcod: p.provcod || null,
+          prodgast: p.prodgast || 0
         });
       });
 
@@ -216,6 +228,7 @@ export class OrdersService {
       const productsWithCost = products.map((product) => ({
         ...product,
         prodvent: prodMap.get(product.prodcod)?.prodvent || 0,
+        prodgast: prodMap.get(product.prodcod)?.prodgast || 0,
         prodcost: prodMap.get(product.prodcod)?.prodcost || 0,
         ordprodcan: prodMap.get(product.prodcod)?.ordprodcan || 0,
         tipprodnom: tipoMap.get(product.tipprodcod ?? "") || "N/A",

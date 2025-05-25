@@ -8,6 +8,7 @@ export interface OrderProductType {
   prodcost: number;
   prodvent: number;
   ordprodcan: number;
+  prodgast: number
 
   items: CreateItemDto[];
 }

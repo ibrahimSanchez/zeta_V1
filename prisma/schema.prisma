@@ -329,6 +329,7 @@ model ordenesproductos {
   ordprodprereal Float?
   prodcost       Float
   prodvent       Float
+  prodgast       Float
 
   // orden    ordenes     @relation(fields: [ordcod], references: [ordcod])
   // producto productos   @relation(fields: [prodcod], references: [prodcod])

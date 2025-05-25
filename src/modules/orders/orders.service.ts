@@ -174,6 +174,16 @@ export class OrdersService {
           prodnom: true,
           tipprodcod: true,
           parentproductid: true,
+          items: {
+            select: {
+              itemcod: true,
+              itemcom: true,
+              itemest: true,
+              itemfec: true,
+              itemgas: true,
+              itemven: true,
+            },
+          },
         },
       });
 
@@ -363,6 +373,7 @@ export class OrdersService {
         ordprodcan: product.ordprodcan,
         provcod: product.provcod,
         ordprodlle: false,
+        prodgast: product.prodgast,
       }));
 
       // Extraer ítems de los productos
@@ -373,7 +384,7 @@ export class OrdersService {
             itemest: item.itemest,
             itemgas: item.itemgas,
             itemven: item.itemven,
-            prodcod: item.prodcod,
+            prodcod: product.prodcod,
           }));
         }
         return [];
@@ -489,6 +500,7 @@ export class OrdersService {
         ordprodlle: false,
         prodcost: product.prodcost,
         prodvent: product.prodvent,
+        prodgast: product.prodgast,
       }));
 
       const itemsToInsert = safeOrderProduct.flatMap(
@@ -498,7 +510,7 @@ export class OrdersService {
             itemest: item.itemest,
             itemgas: item.itemgas,
             itemven: item.itemven,
-            prodcod: item.prodcod,
+            prodcod: product.prodcod,
           })) ?? [],
       );
 
@@ -569,6 +581,7 @@ export class OrdersService {
         items: itemsToInsert,
       };
     } catch (error) {
+      console.log(error);
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2025") {
           throw new NotFoundException(`Order with code ${ordcod} not found`);

@@ -103,11 +103,11 @@ export class ItemsService {
   }
 
   async create(createItemDto: CreateItemDto) {
-    const { itemcom, itemest, itemgas, itemven, prodcod } = createItemDto;
+    const { itemcom, itemest, itemgas, itemven, prodcod, numserie } = createItemDto;
 
     try {
       return await this.prismaService.items.create({
-        data: { itemcom, itemest, itemgas, itemven, prodcod },
+        data: { itemcom, itemest, itemgas, itemven, prodcod, numserie },
       });
     } catch (error) {
       if (error.code === "P2003") {

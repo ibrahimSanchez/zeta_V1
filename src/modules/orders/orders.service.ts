@@ -168,7 +168,7 @@ export class OrdersService {
             prodgast: true,
           },
         });
-
+ 
       const prodcods = [...new Set(foundOrderProducts.map((p) => p.prodcod))];
 
       if (prodcods.length === 0) {

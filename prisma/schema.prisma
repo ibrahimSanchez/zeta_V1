@@ -187,13 +187,14 @@ model productos {
 }
 
 model items {
-  itemcod Int      @id @default(autoincrement())
-  itemven Float
-  itemcom Float
-  itemgas Float
-  itemfec DateTime @default(now())
-  itemest String   @db.VarChar(20)
-  prodcod String   @db.VarChar(50)
+  itemcod  Int      @id @default(autoincrement())
+  itemven  Float
+  itemcom  Float
+  itemgas  Float
+  itemfec  DateTime @default(now())
+  itemest  String   @db.VarChar(20)
+  prodcod  String   @db.VarChar(50)
+  numserie String
 
   productos productos @relation(fields: [prodcod], references: [prodcod])
 

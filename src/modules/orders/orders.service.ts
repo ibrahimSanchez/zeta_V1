@@ -64,13 +64,13 @@ export class OrdersService {
       const client = allClients.find((c) => c.clicod === order.clicod);
 
       const { ordcos, ordmon, ordcom } = order;
-        let profitPercentage;
-        if (ordcos === null || ordmon === null || ordcom === null) {
-          profitPercentage = "N/A";
-        } else {
-          const g = ordmon - ordcos - ordcom * 100;
-          profitPercentage = g / ordmon;
-        }
+      let profitPercentage;
+      if (ordcos === null || ordmon === null || ordcom === null) {
+        profitPercentage = "N/A";
+      } else {
+        const g = ordmon - ordcos - ordcom * 100;
+        profitPercentage = g / ordmon;
+      }
       return {
         ordcod: order.ordcod,
         ordnumfac: order.ordnumfac,
@@ -82,7 +82,7 @@ export class OrdersService {
         ordcos: order.ordcos || 0,
         ordcom: order.ordcom || 0,
         proposal: order.ordfecpro,
-        profitPercentage
+        profitPercentage,
       };
     });
 
@@ -165,7 +165,7 @@ export class OrdersService {
             prodvent: true,
             ordprodcan: true,
             provcod: true,
-            prodgast: true
+            prodgast: true,
           },
         });
 
@@ -186,6 +186,7 @@ export class OrdersService {
           parentproductid: true,
           items: {
             select: {
+              numserie: true,
               itemcod: true,
               itemcom: true,
               itemest: true,
@@ -207,7 +208,7 @@ export class OrdersService {
           prodcost: number;
           ordprodcan: number;
           provcod: string | null;
-          prodgast: number
+          prodgast: number;
         }
       >();
       foundOrderProducts.forEach((p) => {
@@ -216,7 +217,7 @@ export class OrdersService {
           prodcost: p.prodcost || 0,
           ordprodcan: p.ordprodcan || 0,
           provcod: p.provcod || null,
-          prodgast: p.prodgast || 0
+          prodgast: p.prodgast || 0,
         });
       });
 
@@ -398,6 +399,7 @@ export class OrdersService {
             itemgas: item.itemgas,
             itemven: item.itemven,
             prodcod: product.prodcod,
+            numserie: item.numserie,
           }));
         }
         return [];
@@ -520,6 +522,7 @@ export class OrdersService {
         (product) =>
           product.items?.map((item) => ({
             itemcom: item.itemcom,
+            numserie: item.numserie,
             itemest: item.itemest,
             itemgas: item.itemgas,
             itemven: item.itemven,

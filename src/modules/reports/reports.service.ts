@@ -95,8 +95,8 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           clicod: order.clicod,
-          ordfec: this.formatearFecha(order.ordfec),
-          ordfecpro: this.formatearFecha(order.ordfecpro),
+          ordfec: this.formatDate(order.ordfec),
+          ordfecpro: this.formatDate(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -187,8 +187,8 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           provcod,
-          ordfec: this.formatearFecha(order.ordfec),
-          ordfecpro: this.formatearFecha(order.ordfecpro),
+          ordfec: this.formatDate(order.ordfec),
+          ordfecpro: this.formatDate(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -256,7 +256,7 @@ export class ReportsService {
         const state = foundStates.find((s) => s.estcod === order.estcod);
         return {
           ordcod: order.ordcod,
-          ordfec: this.formatearFecha(order.ordfec),
+          ordfec: this.formatDate(order.ordfec),
           ordfecpro: order.ordfecpro,
           ordnumfac: order.ordnumfac,
           estnom: state?.estnom,
@@ -337,7 +337,7 @@ export class ReportsService {
           ordnumfac: order.ordnumfac,
 
           clicod: order.clicod,
-          ordfec: this.formatearFecha(order.ordfec),
+          ordfec: this.formatDate(order.ordfec),
           ordfecpro: order.ordfecpro,
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
@@ -473,12 +473,82 @@ export class ReportsService {
       throw new Error("Failed to fetch best selling products report");
     }
   }
-
   async profitMarginPerProduct(
     datesReportQuery: SwaggerProfitMarginPerProduct,
   ) {
     const { startDate, endDate, prodcod } = datesReportQuery;
-    return "Aun no se que hay que devolver";
+
+    const foundOrders = await this.prismaService.ordenes.findMany({
+      // take: 100,
+      where: {
+        ordfec: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        ordcod: true,
+        ordfec: true,
+      },
+    });
+
+    const orderCodes = foundOrders.map((order) => order.ordcod);
+
+    if (orderCodes.length === 0) {
+      return [];
+    }
+
+    const ordersProducts = await this.prismaService.ordenesproductos.findMany({
+      where: {
+        ordcod: { in: orderCodes },
+        prodcod: prodcod,
+      },
+      select: {
+        ordcod: true,
+        prodcod: true,
+        prodcost: true,
+        prodvent: true,
+        provcod: true,
+      },
+    });
+
+    if (ordersProducts.length === 0) {
+      return [];
+    }
+
+    const supplierCode = ordersProducts[0].provcod;
+
+    const product = await this.prismaService.productos.findFirst({
+      where: { prodcod },
+      select: {
+        prodnom: true,
+      },
+    });
+
+    const supplier = await this.prismaService.proveedores.findUnique({
+      where: { provcod: supplierCode },
+      select: {
+        provnom: true,
+      },
+    });
+
+    const ordenesMap = Object.fromEntries(
+      foundOrders.map((o) => [o.ordcod, o.ordfec]),
+    );
+
+    const report = ordersProducts.map((op) => ({
+      prodnom: product?.prodnom ?? "N/A",
+      ordcod: op.ordcod,
+      prodcod: op.prodcod,
+      prodcost: op.prodcost,
+      prodvent: op.prodvent,
+      provcod: op.provcod,
+      provnom: supplier?.provnom ?? "N/A",
+      date: this.formatDate(ordenesMap[op.ordcod]),
+      profitMargin: "todavia no se la formula",
+    }));
+
+    return report;
   }
 
   calProfitPercentage(ordmon: number, ordcos: number) {
@@ -489,7 +559,7 @@ export class ReportsService {
     return { profitPercentage, commission };
   }
 
-  formatearFecha(fechaIso: Date): string {
+  formatDate(fechaIso: Date): string {
     const date = new Date(fechaIso);
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");

@@ -19,6 +19,7 @@ import {
   SwaggerBrandReportResponse,
   SwaggerBestSellingProduct,
   SwaggerBasicReportResponse,
+  SwaggerProfitMarginPerProduct,
 } from "./dto/report.dto";
 
 @ApiTags("Reportes")
@@ -104,5 +105,23 @@ export class ReportsController {
     @Body() datesReportQuery: SwaggerDatesReportQuery,
   ) {
     return this.reportsService.bestSellingProductsReport(datesReportQuery);
+  }
+
+  @Public()
+  @Post("profit-margin-per-product")
+  @ApiOperation({
+    summary: "Reporte de margen de ganancia de un producto",
+    description:
+      "Genera un reporte con el margen de ganancia de un producto en un período",
+  })
+  @ApiBody({ type: SwaggerProfitMarginPerProduct })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerBestSellingProduct],
+  })
+  async profitMarginPerProduct(
+    @Body() datesReportQuery: SwaggerProfitMarginPerProduct,
+  ) {
+    return this.reportsService.profitMarginPerProduct(datesReportQuery);
   }
 }

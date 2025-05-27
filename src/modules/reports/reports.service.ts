@@ -8,6 +8,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { OrderStateService } from "../order-state/order-state.service";
 import { CurrencyService } from "../currency/currency.service";
 import { PaymentMethodService } from "../payment-method/payment-method.service";
+import { SwaggerProfitMarginPerProduct } from "./dto/report.dto";
 
 @Injectable()
 export class ReportsService {
@@ -72,12 +73,16 @@ export class ReportsService {
 
       const report = foundOrders.map((order) => {
         const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
-        let profitPercentage;
+        let profitPercentage, commission;
         if (ordcos === null || ordmon === null || ordcom === null) {
           profitPercentage = "N/A";
+          commission = "N/A";
         } else {
-          const g = ordmon - ordcos - ordcom * 100;
-          profitPercentage = g / ordmon;
+          profitPercentage = this.calProfitPercentage(
+            ordmon,
+            ordcos,
+          ).profitPercentage;
+          commission = this.calProfitPercentage(ordmon, ordcos).commission;
         }
 
         const state = foundStates.find((s) => s.estcod === estcod);
@@ -90,15 +95,17 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           clicod: order.clicod,
-          ordfec: order.ordfec,
-          ordfecpro: order.ordfecpro,
+          ordfec: this.formatearFecha(order.ordfec),
+          ordfecpro: this.formatearFecha(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
           clicodbit: foundClient.clicodbit || "N/A",
+          ordmon: order.ordmon || 0,
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
           profitPercentage,
+          // commission,
         };
       });
 
@@ -159,12 +166,16 @@ export class ReportsService {
       const report = foundOrders.map((order) => {
         const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
 
-        let profitPercentage;
+        let profitPercentage, commission;
         if (ordcos === null || ordmon === null || ordcom === null) {
           profitPercentage = "N/A";
+          commission = "N/A";
         } else {
-          const g = ordmon - ordcos - ordcom * 100;
-          profitPercentage = g / ordmon;
+          profitPercentage = this.calProfitPercentage(
+            ordmon,
+            ordcos,
+          ).profitPercentage;
+          commission = this.calProfitPercentage(ordmon, ordcos).commission;
         }
         const state = foundStates.find((s) => s.estcod === estcod);
         const currency = foundCurrencies.find((c) => c.moncod === moncod);
@@ -176,15 +187,16 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           provcod,
-          ordfec: order.ordfec,
-          ordfecpro: order.ordfecpro,
+          ordfec: this.formatearFecha(order.ordfec),
+          ordfecpro: this.formatearFecha(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
-
+          ordmon: order.ordmon || 0,
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
           profitPercentage,
+          // commission,
         };
       });
 
@@ -244,7 +256,7 @@ export class ReportsService {
         const state = foundStates.find((s) => s.estcod === order.estcod);
         return {
           ordcod: order.ordcod,
-          ordfec: order.ordfec,
+          ordfec: this.formatearFecha(order.ordfec),
           ordfecpro: order.ordfecpro,
           ordnumfac: order.ordnumfac,
           estnom: state?.estnom,
@@ -265,7 +277,14 @@ export class ReportsService {
 
     try {
       const foundOrders = await this.prismaService.ordenes.findMany({
+        // take: 1000,
         where: {
+          // ordcos: {
+          //   not: null,
+          // },
+          // ordmon: {
+          //   not: null,
+          // },
           ordfec: {
             gte: startDate,
             lte: endDate,
@@ -295,13 +314,17 @@ export class ReportsService {
 
       const report = foundOrders.map((order) => {
         const { ordcos, ordmon, ordcom, estcod, moncod, pagocod } = order;
- 
-        let profitPercentage;
-        if (ordcos === null || ordmon === null || ordcom === null)
+
+        let profitPercentage, commission;
+        if (ordcos === null || ordmon === null || ordcom === null) {
           profitPercentage = "N/A";
-        else {
-          const g = ordmon - ordcos - ordcom * 100;
-          profitPercentage = g / ordmon;
+          commission = "N/A";
+        } else {
+          profitPercentage = this.calProfitPercentage(
+            ordmon,
+            ordcos,
+          ).profitPercentage;
+          commission = this.calProfitPercentage(ordmon, ordcos).commission;
         }
         const state = foundStates.find((s) => s.estcod === estcod);
         const currency = foundCurrencies.find((c) => c.moncod === moncod);
@@ -314,15 +337,16 @@ export class ReportsService {
           ordnumfac: order.ordnumfac,
 
           clicod: order.clicod,
-          ordfec: order.ordfec,
+          ordfec: this.formatearFecha(order.ordfec),
           ordfecpro: order.ordfecpro,
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
-
+          ordmon: order.ordmon || 0,
           ordcos: order.ordcos || 0,
           ordcom: order.ordcom || 0,
           profitPercentage,
+          // commission,
         };
       });
 
@@ -448,5 +472,28 @@ export class ReportsService {
       console.error("Error fetching best selling products report", error);
       throw new Error("Failed to fetch best selling products report");
     }
+  }
+
+  async profitMarginPerProduct(
+    datesReportQuery: SwaggerProfitMarginPerProduct,
+  ) {
+    const { startDate, endDate, prodcod } = datesReportQuery;
+    return "Aun no se que hay que devolver";
+  }
+
+  calProfitPercentage(ordmon: number, ordcos: number) {
+    const mon: number = ordmon - ordcos;
+    const profitPercentage: number = (mon / ordcos) * 100;
+
+    const commission: number = mon * 0.1;
+    return { profitPercentage, commission };
+  }
+
+  formatearFecha(fechaIso: Date): string {
+    const date = new Date(fechaIso);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
   }
 }

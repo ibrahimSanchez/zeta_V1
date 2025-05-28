@@ -473,13 +473,14 @@ export class ReportsService {
       throw new Error("Failed to fetch best selling products report");
     }
   }
+
   async profitMarginPerProduct(
     datesReportQuery: SwaggerProfitMarginPerProduct,
   ) {
-    const { startDate, endDate, prodcod } = datesReportQuery;
+    const { startDate, endDate } = datesReportQuery;
 
     const foundOrders = await this.prismaService.ordenes.findMany({
-      // take: 100,
+      take: 100,
       where: {
         ordfec: {
           gte: startDate,
@@ -501,7 +502,6 @@ export class ReportsService {
     const ordersProducts = await this.prismaService.ordenesproductos.findMany({
       where: {
         ordcod: { in: orderCodes },
-        prodcod: prodcod,
       },
       select: {
         ordcod: true,
@@ -516,42 +516,69 @@ export class ReportsService {
       return [];
     }
 
-    const supplierCode = ordersProducts[0].provcod;
+    const productsCodes = Array.from(
+      new Set(ordersProducts.map((op) => op.prodcod)),
+    );
 
-    const product = await this.prismaService.productos.findFirst({
-      where: { prodcod },
-      select: {
-        prodnom: true,
-      },
-    });
+    const suppliersCodes = Array.from(
+      new Set(ordersProducts.map((op) => op.provcod)),
+    );
 
-    const supplier = await this.prismaService.proveedores.findUnique({
-      where: { provcod: supplierCode },
-      select: {
-        provnom: true,
-      },
-    });
+    const [products, suppliers] = await Promise.all([
+      this.prismaService.productos.findMany({
+        where: {
+          prodcod: { in: productsCodes },
+        },
+        select: {
+          prodcod: true,
+          prodnom: true,
+        },
+      }),
+      this.prismaService.proveedores.findMany({
+        where: {
+          provcod: { in: suppliersCodes },
+        },
+        select: {
+          provcod: true,
+          provnom: true,
+        },
+      }),
+    ]);
 
-    const ordenesMap = Object.fromEntries(
+    const productMap = Object.fromEntries(
+      products.map((p) => [p.prodcod, p.prodnom]),
+    );
+
+    const supplierMap = Object.fromEntries(
+      suppliers.map((s) => [s.provcod, s.provnom]),
+    );
+
+    const ordersDateMap = Object.fromEntries(
       foundOrders.map((o) => [o.ordcod, o.ordfec]),
     );
 
     const report = ordersProducts.map((op) => ({
-      prodnom: product?.prodnom ?? "N/A",
+      prodnom: productMap[op.prodcod] ?? "N/A",
       ordcod: op.ordcod,
       prodcod: op.prodcod,
       prodcost: op.prodcost,
       prodvent: op.prodvent,
       provcod: op.provcod,
-      provnom: supplier?.provnom ?? "N/A",
-      date: this.formatDate(ordenesMap[op.ordcod]),
-      profitMargin: "todavia no se la formula",
+      provnom: supplierMap[op.provcod] ?? "N/A",
+      date: this.formatDate(ordersDateMap[op.ordcod]),
+      profitMargin: this.calProfitPercentage(op.prodvent, op.prodcost)
+        .profitPercentage,
+      commission: this.calProfitPercentage(op.prodvent, op.prodcost).commission,
     }));
 
     return report;
   }
 
-  calProfitPercentage(ordmon: number, ordcos: number) {
+  calProfitPercentage(ordmon: number | null, ordcos: number | null) {
+    if (!ordmon || !ordcos)
+      return { profitPercentage: "N/A", commission: "N/A" };
+
+    console.log(ordmon, ordcos);
     const mon: number = ordmon - ordcos;
     const profitPercentage: number = (mon / ordcos) * 100;
 

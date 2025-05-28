@@ -110,9 +110,9 @@ export class ReportsController {
   @Public()
   @Post("profit-margin-per-product")
   @ApiOperation({
-    summary: "Reporte de margen de ganancia de un producto",
+    summary: "Reporte de margen de ganancia de los productos",
     description:
-      "Genera un reporte con el margen de ganancia de un producto en un período",
+      "Genera un reporte con el margen de ganancia de los productos en un período",
   })
   @ApiBody({ type: SwaggerProfitMarginPerProduct })
   @ApiOkResponse({

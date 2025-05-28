@@ -134,6 +134,6 @@ export class SwaggerProfitMarginPerProduct {
   @ApiProperty({ description: "Fecha de fin para el reporte" })
   endDate: Date;
 
-  @ApiProperty({ description: "Código del producto" })
-  prodcod: string;
+  // @ApiProperty({ description: "Código del producto" })
+  // prodcod: string;
 }

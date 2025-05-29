@@ -25,6 +25,8 @@ export class ItemsService {
           itemven: true,
           productos: true,
           prodcod: true,
+          itemgar: true,
+          numserie: true,
         },
       });
     } catch (error) {
@@ -55,6 +57,8 @@ export class ItemsService {
           itemven: true,
           productos: true,
           prodcod: true,
+          itemgar: true,
+          numserie: true,
         },
       });
     } catch (error) {
@@ -85,6 +89,8 @@ export class ItemsService {
           itemven: true,
           productos: true,
           prodcod: true,
+          itemgar: true,
+          numserie: true,
         },
       });
     } catch (error) {
@@ -103,11 +109,12 @@ export class ItemsService {
   }
 
   async create(createItemDto: CreateItemDto) {
-    const { itemcom, itemest, itemgas, itemven, prodcod, numserie } = createItemDto;
+    const { itemcom, itemest, itemgas, itemven, prodcod, numserie, itemgar } =
+      createItemDto;
 
     try {
       return await this.prismaService.items.create({
-        data: { itemcom, itemest, itemgas, itemven, prodcod, numserie },
+        data: { itemcom, itemest, itemgas, itemven, prodcod, numserie, itemgar },
       });
     } catch (error) {
       if (error.code === "P2003") {

@@ -17,6 +17,11 @@ export class SwaggerItemResponseDto {
   })
   itemfec: Date;
 
+  @ApiProperty({
+    description: "Fecha de garantía del item",
+  })
+  itemgar: Date;
+
   @ApiProperty({ description: "Costo del item", example: 100.5 })
   itemgas: number;
 
@@ -48,6 +53,11 @@ export class SwaggerCreateItemDto {
   })
   itemest?: boolean;
 
+  @ApiProperty({
+    description: "Fecha de garantía del item",
+  })
+  itemgar?: Date;
+
   @ApiProperty({ description: "Costo del item", example: 100.5 })
   itemgas: number;
 
@@ -78,6 +88,13 @@ export class SwaggerUpdateItemDto {
     required: false,
   })
   itemgas?: number;
+
+
+  @ApiProperty({
+    description: "Fecha de garantía del item",
+  })
+  itemgar?: Date;
+
 
   @ApiProperty({
     description: "Precio de venta del item",

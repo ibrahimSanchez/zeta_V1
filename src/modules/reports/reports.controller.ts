@@ -20,6 +20,7 @@ import {
   SwaggerBestSellingProduct,
   SwaggerBasicReportResponse,
   SwaggerProfitMarginPerProduct,
+  SwaggerItemsInDateRange,
 } from "./dto/report.dto";
 
 @ApiTags("Reportes")
@@ -123,5 +124,22 @@ export class ReportsController {
     @Body() datesReportQuery: SwaggerProfitMarginPerProduct,
   ) {
     return this.reportsService.profitMarginPerProduct(datesReportQuery);
+  }
+
+
+  @Public()
+  @Post("items-in-date-range")
+  @ApiOperation({
+    summary: "Reporte de items en un rango de fecha",
+    description:
+      "Genera un reporte con datos de los items en un período",
+  })
+  @ApiBody({ type: SwaggerDatesReportQuery })
+  @ApiOkResponse({
+    description: "Reporte generado exitosamente",
+    type: [SwaggerItemsInDateRange],
+  })
+  async itemsInDateRange(@Body() datesReportQuery: SwaggerDatesReportQuery) {
+    return this.reportsService.itemsInDateRange(datesReportQuery);
   }
 }

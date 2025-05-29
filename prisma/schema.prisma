@@ -192,6 +192,7 @@ model items {
   itemcom  Float
   itemgas  Float
   itemfec  DateTime @default(now())
+  itemgar  DateTime?
   itemest  String   @db.VarChar(20)
   prodcod  String   @db.VarChar(50)
   numserie String

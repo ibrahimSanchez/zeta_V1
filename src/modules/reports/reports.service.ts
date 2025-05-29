@@ -574,9 +574,60 @@ export class ReportsService {
     return report;
   }
 
+  async itemsInDateRange(datesReportQuery: DatesReportQuery) {
+    const { startDate, endDate } = datesReportQuery;
+
+    try {
+      const foundItems = await this.prismaService.items.findMany({
+        where: {
+          itemfec: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        select: {
+          numserie: true,
+          prodcod: true,
+          itemfec: true,
+          itemgar: true,
+        },
+      });
+
+      const prodcods = [...new Set(foundItems.map((item) => item.prodcod))];
+
+      const ordenes = await this.prismaService.ordenesproductos.findMany({
+        where: {
+          prodcod: { in: prodcods },
+        },
+        select: {
+          prodcod: true,
+          ordcod: true,
+        },
+      });
+
+      const ordMap = new Map<string, number>();
+      ordenes.forEach((o) => {
+        if (!ordMap.has(o.prodcod)) {
+          ordMap.set(o.prodcod, o.ordcod);
+        }
+      });
+
+      const report = foundItems.map((item) => ({
+        ...item,
+        itemgar: this.formatDate(item.itemgar),
+        itemfec: this.formatDate(item.itemfec),
+        ordcod: ordMap.get(item.prodcod) ?? null,
+      }));
+
+      return report;
+    } catch (error) {
+      console.error("Error fetching report", error);
+      throw new Error("Failed to fetch report");
+    }
+  }
+
   calProfitPercentage(ordmon: number | null, ordcos: number | null) {
-    if (!ordmon || !ordcos)
-      return { profitPercentage: "N/A", commission: "N/A" };
+    if (!ordmon || !ordcos) return { profitPercentage: null, commission: null };
 
     console.log(ordmon, ordcos);
     const mon: number = ordmon - ordcos;
@@ -586,7 +637,8 @@ export class ReportsService {
     return { profitPercentage, commission };
   }
 
-  formatDate(fechaIso: Date): string {
+  formatDate(fechaIso: Date | null): string | null {
+    if (!fechaIso) return null;
     const date = new Date(fechaIso);
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");

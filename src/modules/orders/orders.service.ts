@@ -15,7 +15,7 @@ import { SupplierService } from "../supplier/supplier.service";
 import { PaymentMethodService } from "../payment-method/payment-method.service";
 import { CurrencyService } from "../currency/currency.service";
 import { ClientService } from "../client/client.service";
-import { Logger } from "@nestjs/common"; // Importa Logger
+import { Logger } from "@nestjs/common";
 
 @Injectable()
 export class OrdersService {
@@ -168,7 +168,7 @@ export class OrdersService {
             prodgast: true,
           },
         });
- 
+
       const prodcods = [...new Set(foundOrderProducts.map((p) => p.prodcod))];
 
       if (prodcods.length === 0) {
@@ -191,6 +191,7 @@ export class OrdersService {
               itemcom: true,
               itemest: true,
               itemfec: true,
+              itemgar: true,
               itemgas: true,
               itemven: true,
             },
@@ -400,6 +401,7 @@ export class OrdersService {
             itemven: item.itemven,
             prodcod: product.prodcod,
             numserie: item.numserie,
+            itemgar: item.itemgar || null ,
           }));
         }
         return [];
@@ -445,7 +447,6 @@ export class OrdersService {
         items: itemsToCreate, // opcional, si deseas incluirlos
       };
     } catch (error) {
-
       // console.log(error)
       this.logger.error("Error al crear la orden:", error);
 
@@ -528,6 +529,7 @@ export class OrdersService {
             itemest: item.itemest,
             itemgas: item.itemgas,
             itemven: item.itemven,
+            itemgar: item.itemgar || null,
             prodcod: product.prodcod,
           })) ?? [],
       );

@@ -137,3 +137,20 @@ export class SwaggerProfitMarginPerProduct {
   // @ApiProperty({ description: "Código del producto" })
   // prodcod: string;
 }
+
+export class SwaggerItemsInDateRange {
+  @ApiProperty({ description: "Número de serie del item" })
+  numserie: string;
+
+  @ApiProperty({ description: "Código del producto" })
+  prodcod: string;
+
+  @ApiProperty({ description: "Fecha en la que se añade el item" })
+  itemfec: Date;
+
+  @ApiProperty({ description: "Garantía del item" })
+  itemgar: Date;
+
+  @ApiProperty({ description: "Código de la orden de trabajo" })
+  ordcod: number;
+}

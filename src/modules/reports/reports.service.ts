@@ -480,7 +480,7 @@ export class ReportsService {
     const { startDate, endDate } = datesReportQuery;
 
     const foundOrders = await this.prismaService.ordenes.findMany({
-      take: 100,
+      // take: 100,
       where: {
         ordfec: {
           gte: startDate,

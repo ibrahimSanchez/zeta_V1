@@ -318,13 +318,13 @@ export class OrdersService {
     } = createOrderDto;
 
     // Verificación temprana si la orden existe
-    const existOrder = await this.prismaService.ordenes.findFirst({
-      where: { ordnumfac },
-    });
+    // const existOrder = await this.prismaService.ordenes.findFirst({
+    //   where: { ordnumfac },
+    // });
 
-    if (existOrder) {
-      throw new ConflictException();
-    }
+    // if (existOrder) {
+    //   throw new ConflictException();
+    // }
 
     try {
       const foundClient = await this.clientService.getClientByClicod(
@@ -445,6 +445,8 @@ export class OrdersService {
         items: itemsToCreate, // opcional, si deseas incluirlos
       };
     } catch (error) {
+
+      // console.log(error)
       this.logger.error("Error al crear la orden:", error);
 
       if (error instanceof Prisma.PrismaClientKnownRequestError) {

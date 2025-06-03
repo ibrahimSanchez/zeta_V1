@@ -22,6 +22,7 @@ import {
   SwaggerProfitMarginPerProduct,
   SwaggerItemsInDateRange,
 } from "./dto/report.dto";
+import { ClientReportQuery } from "./types/reportTypes";
 
 @ApiTags("Reportes")
 @Controller("reports")
@@ -54,8 +55,8 @@ export class ReportsController {
     description: "Reporte generado exitosamente",
     type: [SwaggerClientReportResponse],
   })
-  async clientReport(@Body() clientReportQuery: SwaggerClientReportQuery) {
-    return this.reportsService.clientReport(clientReportQuery);
+  async clientReport(@Body() clientReportQuery: ClientReportQuery) {
+    return await this.reportsService.clientReport(clientReportQuery);
   }
 
   @Public()

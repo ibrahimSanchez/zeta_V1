@@ -13,6 +13,12 @@ export class SwaggerDatesReportQuery {
 export class SwaggerClientReportQuery extends SwaggerDatesReportQuery {
   @ApiProperty({ description: "Código del cliente" })
   clicod: string;
+  
+  @ApiProperty({ description: "Fecha de inicio para el reporte" })
+  startDate: Date;
+
+  @ApiProperty({ description: "Fecha de fin para el reporte" })
+  endDate: Date;
 }
 
 export class SwaggerSupplierReportQuery extends SwaggerDatesReportQuery {

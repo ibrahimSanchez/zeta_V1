@@ -21,8 +21,10 @@ export class ReportsService {
 
   //todo: *********************************************************************************
   async clientReport(clientReportQuery: ClientReportQuery) {
+    
+    // return clientReportQuery
+    console.log(clientReportQuery)
     const { clicod, startDate, endDate } = clientReportQuery;
-
     try {
       const foundClient = await this.prismaService.clientes.findUnique({
         where: {
@@ -95,8 +97,8 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           clicod: order.clicod,
-          ordfec: this.formatDate(order.ordfec),
-          ordfecpro: this.formatDate(order.ordfecpro),
+          ordfec: order.ordfec,
+          ordfecpro: order.ordfecpro,
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -187,8 +189,8 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           provcod,
-          ordfec: this.formatDate(order.ordfec),
-          ordfecpro: this.formatDate(order.ordfecpro),
+          ordfec: order.ordfec,
+          ordfecpro: order.ordfecpro,
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -256,7 +258,7 @@ export class ReportsService {
         const state = foundStates.find((s) => s.estcod === order.estcod);
         return {
           ordcod: order.ordcod,
-          ordfec: this.formatDate(order.ordfec),
+          ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
           ordnumfac: order.ordnumfac,
           estnom: state?.estnom,
@@ -337,7 +339,7 @@ export class ReportsService {
           ordnumfac: order.ordnumfac,
 
           clicod: order.clicod,
-          ordfec: this.formatDate(order.ordfec),
+          ordfec: order.ordfec,
           ordfecpro: order.ordfecpro,
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
@@ -566,7 +568,7 @@ export class ReportsService {
       prodvent: op.prodvent,
       provcod: op.provcod,
       provnom: supplierMap[op.provcod] ?? "N/A",
-      date: this.formatDate(ordersDateMap[op.ordcod]),
+      date: ordersDateMap[op.ordcod],
       profitMargin: this.calProfitPercentage(op.prodvent, op.prodcost)
         .profitPercentage,
       commission: this.calProfitPercentage(op.prodvent, op.prodcost).commission,
@@ -616,8 +618,8 @@ export class ReportsService {
 
       const report = foundItems.map((item) => ({
         ...item,
-        itemgar: this.formatDate(item.itemgar),
-        itemfec: this.formatDate(item.itemfec),
+        itemgar: item.itemgar,
+        itemfec: item.itemfec,
         ordcod: ordMap.get(item.prodcod) ?? null,
         itemest: item.itemest,
       }));
@@ -640,12 +642,12 @@ export class ReportsService {
     return { profitPercentage, commission };
   }
 
-  formatDate(fechaIso: Date | null): string | null {
-    if (!fechaIso) return null;
-    const date = new Date(fechaIso);
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  }
+  // formatDate(fechaIso: Date | null): string | null {
+  //   if (!fechaIso) return null;
+  //   const date = new Date(fechaIso);
+  //   const day = date.getDate().toString().padStart(2, "0");
+  //   const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  //   const year = date.getFullYear();
+  //   return `${day}/${month}/${year}`;
+  // }
 }

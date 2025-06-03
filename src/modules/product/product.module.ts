@@ -9,5 +9,6 @@ import { SupplierModule } from "../supplier/supplier.module";
   imports: [ProductTypeModule, SupplierModule],
   controllers: [ProductController],
   providers: [ProductService, PrismaService],
+  exports: [ProductService],
 })
 export class ProductModule {}

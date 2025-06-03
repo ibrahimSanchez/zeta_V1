@@ -557,7 +557,8 @@ export class ReportsService {
       foundOrders.map((o) => [o.ordcod, o.ordfec]),
     );
 
-    const report = ordersProducts.map((op) => ({
+    const report = ordersProducts.map((op, index) => ({
+      code: index + 1,
       prodnom: productMap[op.prodcod] ?? "N/A",
       ordcod: op.ordcod,
       prodcod: op.prodcod,
@@ -590,6 +591,7 @@ export class ReportsService {
           prodcod: true,
           itemfec: true,
           itemgar: true,
+          itemest: true,
         },
       });
 
@@ -617,6 +619,7 @@ export class ReportsService {
         itemgar: this.formatDate(item.itemgar),
         itemfec: this.formatDate(item.itemfec),
         ordcod: ordMap.get(item.prodcod) ?? null,
+        itemest: item.itemest,
       }));
 
       return report;

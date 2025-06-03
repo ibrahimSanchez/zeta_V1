@@ -13,6 +13,7 @@ import { CurrencyModule } from './modules/currency/currency.module';
 import { PaymentMethodModule } from './modules/payment-method/payment-method.module';
 import { OrderStateModule } from './modules/order-state/order-state.module';
 import { ItemsModule } from './modules/items/items.module';
+import { FetchDataModule } from './modules/fetch-data/fetch-data.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { ItemsModule } from './modules/items/items.module';
     PaymentMethodModule,
     OrderStateModule,
     ItemsModule,
+    FetchDataModule,
   ],
   controllers: [],
   providers: [PrismaService],

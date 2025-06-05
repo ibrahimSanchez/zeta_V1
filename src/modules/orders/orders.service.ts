@@ -69,7 +69,7 @@ export class OrdersService {
         profitPercentage = "N/A";
       } else {
         const g = ordmon - ordcos;
-        profitPercentage = (g / ordmon) * 100;
+        profitPercentage = (g / ordcos) * 100;
       }
       return {
         ordcod: order.ordcod,
@@ -615,7 +615,6 @@ export class OrdersService {
   async deleteOrders(params: { codes: number[] }) {
     try {
       const { codes } = params;
-      console.log("IDs a eliminar:", codes);
 
       // Usar una transacción para eliminar en ambas tablas
       const result = await this.prismaService.$transaction([
@@ -627,8 +626,30 @@ export class OrdersService {
         this.prismaService.ordenes.deleteMany({
           where: { ordcod: { in: codes } },
         }),
+
+        // Obtener los prodcods para la eliminación posterior (esta operación forma parte de la transacción)
+        this.prismaService.ordenesproductos.findMany({
+          where: { ordcod: { in: codes } },
+          select: {
+            prodcod: true,
+          },
+        }),
+        
       ]);
 
+      // Extraer el resultado del findMany (es el último elemento del array retornado por $transaction)
+        const foundProductOrders = result[2];
+      // 2. Recolectar todos los prodcod únicos de los resultados obtenidos.
+        const prodCodesToEliminate = [...new Set(foundProductOrders.map(item => item.prodcod))];
+      //3. Eliminar item de los productos
+      if (prodCodesToEliminate.length > 0) { // Asegúrate de que haya algo que eliminar
+          await this.prismaService.items.deleteMany({
+          where: {
+            prodcod: { in: prodCodesToEliminate }, // Usar la cláusula 'in' para eficiencia
+          },
+        });
+      }
+        
       const [deletedProducts, deletedOrders] = result;
 
       if (deletedOrders.count === 0) {

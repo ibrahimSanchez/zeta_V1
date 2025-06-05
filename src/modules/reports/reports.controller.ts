@@ -22,7 +22,7 @@ import {
   SwaggerProfitMarginPerProduct,
   SwaggerItemsInDateRange,
 } from "./dto/report.dto";
-import { ClientReportQuery } from "./types/reportTypes";
+import { ClientReportQuery, DatesReportQuery, SupplierReportQuery } from "./types/reportTypes";
 
 @ApiTags("Reportes")
 @Controller("reports")
@@ -40,7 +40,7 @@ export class ReportsController {
     description: "Reporte generado exitosamente",
     type: [SwaggerBasicReportResponse],
   })
-  async datesReport(@Body() datesReportQuery: SwaggerDatesReportQuery) {
+  async datesReport(@Body() datesReportQuery: DatesReportQuery) {
     return this.reportsService.datesReport(datesReportQuery);
   }
 
@@ -71,7 +71,7 @@ export class ReportsController {
     type: [SwaggerSupplierReportResponse],
   })
   async supplierReport(
-    @Body() supplierReportQuery: SwaggerSupplierReportQuery,
+    @Body() supplierReportQuery: SupplierReportQuery,
   ) {
     return this.reportsService.supplierReport(supplierReportQuery);
   }
@@ -104,7 +104,7 @@ export class ReportsController {
     type: [SwaggerBestSellingProduct],
   })
   async bestSellingProductsReport(
-    @Body() datesReportQuery: SwaggerDatesReportQuery,
+    @Body() datesReportQuery: DatesReportQuery,
   ) {
     return this.reportsService.bestSellingProductsReport(datesReportQuery);
   }
@@ -122,7 +122,7 @@ export class ReportsController {
     type: [SwaggerBestSellingProduct],
   })
   async profitMarginPerProduct(
-    @Body() datesReportQuery: SwaggerProfitMarginPerProduct,
+    @Body() datesReportQuery: DatesReportQuery,
   ) {
     return this.reportsService.profitMarginPerProduct(datesReportQuery);
   }
@@ -140,7 +140,7 @@ export class ReportsController {
     description: "Reporte generado exitosamente",
     type: [SwaggerItemsInDateRange],
   })
-  async itemsInDateRange(@Body() datesReportQuery: SwaggerDatesReportQuery) {
+  async itemsInDateRange(@Body() datesReportQuery: DatesReportQuery) {
     return this.reportsService.itemsInDateRange(datesReportQuery);
   }
 }

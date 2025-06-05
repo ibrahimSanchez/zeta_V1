@@ -21,9 +21,8 @@ export class ReportsService {
 
   //todo: *********************************************************************************
   async clientReport(clientReportQuery: ClientReportQuery) {
-    
     // return clientReportQuery
-    console.log(clientReportQuery)
+    // console.log(clientReportQuery);
     const { clicod, startDate, endDate } = clientReportQuery;
     try {
       const foundClient = await this.prismaService.clientes.findUnique({
@@ -45,8 +44,8 @@ export class ReportsService {
         where: {
           clicod,
           ordfec: {
-            gte: startDate,
-            lte: endDate,
+            gte: this.toIsoString(startDate.toString()) || undefined,
+            lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
         select: {
@@ -97,8 +96,8 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           clicod: order.clicod,
-          ordfec: order.ordfec,
-          ordfecpro: order.ordfecpro,
+          ordfec: this.formatDateRes(order.ordfec),
+          ordfecpro: this.formatDateRes(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -139,8 +138,8 @@ export class ReportsService {
         where: {
           ordcod: { in: ordcods },
           ordfec: {
-            gte: startDate,
-            lte: endDate,
+            gte: this.toIsoString(startDate.toString()) || undefined,
+            lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
         select: {
@@ -189,8 +188,8 @@ export class ReportsService {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
           provcod,
-          ordfec: order.ordfec,
-          ordfecpro: order.ordfecpro,
+          ordfec: this.formatDateRes(order.ordfec),
+          ordfecpro: this.formatDateRes(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -258,8 +257,8 @@ export class ReportsService {
         const state = foundStates.find((s) => s.estcod === order.estcod);
         return {
           ordcod: order.ordcod,
-          ordfec: order.ordfec,
-          ordfecpro: order.ordfecpro,
+          ordfec: this.formatDateRes(order.ordfec),
+          ordfecpro: this.formatDateRes(order.ordfecpro),
           ordnumfac: order.ordnumfac,
           estnom: state?.estnom,
           productos,
@@ -288,8 +287,8 @@ export class ReportsService {
           //   not: null,
           // },
           ordfec: {
-            gte: startDate,
-            lte: endDate,
+            gte: this.toIsoString(startDate.toString()) || undefined,
+            lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
         select: {
@@ -339,8 +338,8 @@ export class ReportsService {
           ordnumfac: order.ordnumfac,
 
           clicod: order.clicod,
-          ordfec: order.ordfec,
-          ordfecpro: order.ordfecpro,
+          ordfec: this.formatDateRes(order.ordfec),
+          ordfecpro: this.formatDateRes(order.ordfecpro),
           estnom: state?.estnom,
           pagonom: paymentMethod?.pagonom,
           monnom: currency?.monnom,
@@ -367,8 +366,8 @@ export class ReportsService {
       const foundOrders = await this.prismaService.ordenes.findMany({
         where: {
           ordfec: {
-            gte: startDate,
-            lte: endDate,
+            gte: this.toIsoString(startDate.toString()) || undefined,
+            lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
         select: {
@@ -485,8 +484,8 @@ export class ReportsService {
       // take: 100,
       where: {
         ordfec: {
-          gte: startDate,
-          lte: endDate,
+          gte: this.toIsoString(startDate.toString()) || undefined,
+          lte: this.toIsoString(endDate.toString()) || undefined,
         },
       },
       select: {
@@ -568,7 +567,7 @@ export class ReportsService {
       prodvent: op.prodvent,
       provcod: op.provcod,
       provnom: supplierMap[op.provcod] ?? "N/A",
-      date: ordersDateMap[op.ordcod],
+      date: this.formatDateRes(ordersDateMap[op.ordcod]),
       profitMargin: this.calProfitPercentage(op.prodvent, op.prodcost)
         .profitPercentage,
       commission: this.calProfitPercentage(op.prodvent, op.prodcost).commission,
@@ -584,8 +583,8 @@ export class ReportsService {
       const foundItems = await this.prismaService.items.findMany({
         where: {
           itemfec: {
-            gte: startDate,
-            lte: endDate,
+            gte: this.toIsoString(startDate.toString()) || undefined,
+            lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
         select: {
@@ -618,8 +617,8 @@ export class ReportsService {
 
       const report = foundItems.map((item) => ({
         ...item,
-        itemgar: item.itemgar,
-        itemfec: item.itemfec,
+        itemgar: this.formatDateRes(item.itemgar),
+        itemfec: this.formatDateRes(item.itemfec),
         ordcod: ordMap.get(item.prodcod) ?? null,
         itemest: item.itemest,
       }));
@@ -641,13 +640,21 @@ export class ReportsService {
     const commission: number = mon * 0.1;
     return { profitPercentage, commission };
   }
+  formatDateRes(fechaIso: Date | null): string | null {
+    if (!fechaIso) return null;
+    const date = new Date(fechaIso);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
+  }
 
-  // formatDate(fechaIso: Date | null): string | null {
-  //   if (!fechaIso) return null;
-  //   const date = new Date(fechaIso);
-  //   const day = date.getDate().toString().padStart(2, "0");
-  //   const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  //   const year = date.getFullYear();
-  //   return `${day}/${month}/${year}`;
-  // }
+  toIsoString(fecha: string | null | undefined): string | null {
+    if (!fecha) return null;
+    const [year, month, day] = fecha.split("-");
+    const date = new Date(
+      Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0),
+    );
+    return new Date(fecha).toISOString();
+  }
 }

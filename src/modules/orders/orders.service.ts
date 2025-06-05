@@ -68,8 +68,8 @@ export class OrdersService {
       if (ordcos === null || ordmon === null || ordcom === null) {
         profitPercentage = "N/A";
       } else {
-        const g = ordmon - ordcos - ordcom * 100;
-        profitPercentage = g / ordmon;
+        const g = ordmon - ordcos;
+        profitPercentage = (g / ordmon) * 100;
       }
       return {
         ordcod: order.ordcod,
@@ -81,7 +81,7 @@ export class OrdersService {
         ordmon: order.ordmon || 0,
         ordcos: order.ordcos || 0,
         ordcom: order.ordcom || 0,
-        proposal: order.ordfecpro,
+        proposal: this.formatDateRes(order.ordfecpro),
         profitPercentage,
       };
     });
@@ -229,6 +229,11 @@ export class OrdersService {
 
       const productsWithCost = products.map((product) => ({
         ...product,
+        items: product.items.map((item) => ({
+          ...item,
+          itemfec: this.formatDateRes(item.itemfec),
+          itemgar: this.formatDateRes(item.itemgar),
+        })),
         prodvent: prodMap.get(product.prodcod)?.prodvent || 0,
         prodgast: prodMap.get(product.prodcod)?.prodgast || 0,
         prodcost: prodMap.get(product.prodcod)?.prodcost || 0,
@@ -274,7 +279,7 @@ export class OrdersService {
         clirazsoc: foundClient.clirazsoc || "N/A",
         clidir: foundClient.clidir || "N/A",
         ordcom: foundOrder.ordcom || 0,
-        ordfecpro: foundOrder.ordfecpro,
+        ordfecpro: this.formatDateRes(foundOrder.ordfecpro),
         ordmon: foundOrder.ordmon || 0,
         ordcos: foundOrder.ordcos || 0,
         ordnuev: foundOrder.ordnuev,
@@ -318,15 +323,6 @@ export class OrdersService {
       orderProduct,
     } = createOrderDto;
 
-    // Verificación temprana si la orden existe
-    // const existOrder = await this.prismaService.ordenes.findFirst({
-    //   where: { ordnumfac },
-    // });
-
-    // if (existOrder) {
-    //   throw new ConflictException();
-    // }
-
     try {
       const foundClient = await this.clientService.getClientByClicod(
         clicod || "",
@@ -343,8 +339,8 @@ export class OrdersService {
       // Preparar datos de la orden
       const orderData = {
         ordcod: nextOrdcod,
-        ordfec,
-        ordfecpro,
+        ordfec: ordfec ? this.toIsoString(ordfec.toString()) : null,
+        ordfecpro: ordfecpro ? this.toIsoString(ordfecpro.toString()) : null,
         ordnumfac,
         vendcod,
         clicod,
@@ -401,7 +397,9 @@ export class OrdersService {
             itemven: item.itemven,
             prodcod: product.prodcod,
             numserie: item.numserie,
-            itemgar: item.itemgar || null ,
+            itemgar: item.itemgar
+              ? this.toIsoString(item.itemgar.toString())
+              : null,
           }));
         }
         return [];
@@ -529,7 +527,7 @@ export class OrdersService {
             itemest: item.itemest,
             itemgas: item.itemgas,
             itemven: item.itemven,
-            itemgar: item.itemgar || null,
+            itemgar: this.toIsoString(item.itemgar?.toString()) || null,
             prodcod: product.prodcod,
           })) ?? [],
       );
@@ -545,7 +543,7 @@ export class OrdersService {
         const updatedOrder = await tx.ordenes.update({
           where: { ordcod },
           data: {
-            ordfec,
+            ordfec: this.toIsoString(ordfec?.toString()),
             ordfecpro,
             ordnumfac,
             vendcod,
@@ -651,5 +649,23 @@ export class OrdersService {
       }
       throw error; // Re-lanza otros errores (como el NotFoundException)
     }
+  }
+
+  formatDateRes(fechaIso: Date | null): string | null {
+    if (!fechaIso) return null;
+    const date = new Date(fechaIso);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
+  }
+
+  toIsoString(fecha: string | null | undefined): string | null {
+    if (!fecha) return null;
+    const [year, month, day] = fecha.split("-");
+    const date = new Date(
+      Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0),
+    );
+    return date.toISOString();
   }
 }

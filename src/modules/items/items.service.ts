@@ -15,7 +15,7 @@ export class ItemsService {
 
   async findAll() {
     try {
-      return await this.prismaService.items.findMany({
+      const foundItems = await this.prismaService.items.findMany({
         select: {
           itemcod: true,
           itemcom: true,
@@ -29,6 +29,14 @@ export class ItemsService {
           numserie: true,
         },
       });
+
+      const itemsRes = foundItems.map((i) => ({
+        ...i,
+        itemfec: this.formatDateRes(i.itemfec),
+        itemgar: this.formatDateRes(i.itemgar),
+      }));
+
+      return itemsRes;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -46,7 +54,7 @@ export class ItemsService {
 
   async findOne(itemcod: number) {
     try {
-      return await this.prismaService.items.findUnique({
+      const foundItem = await this.prismaService.items.findUnique({
         where: { itemcod },
         select: {
           itemcod: true,
@@ -61,6 +69,16 @@ export class ItemsService {
           numserie: true,
         },
       });
+
+      if (foundItem) {
+        return {
+          ...foundItem,
+          itemfec: this.formatDateRes(foundItem.itemfec),
+          itemgar: this.formatDateRes(foundItem.itemgar),
+        };
+      }
+
+      return foundItem;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -78,7 +96,7 @@ export class ItemsService {
 
   async findItemByProdcod(prodcod: string) {
     try {
-      return await this.prismaService.items.findMany({
+      const foundItems = await this.prismaService.items.findMany({
         where: { prodcod },
         select: {
           itemcod: true,
@@ -93,6 +111,14 @@ export class ItemsService {
           numserie: true,
         },
       });
+
+      const itemsRes = foundItems.map((i) => ({
+        ...i,
+        itemfec: this.formatDateRes(i.itemfec),
+        itemgar: this.formatDateRes(i.itemgar),
+      }));
+
+      return itemsRes;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -114,7 +140,15 @@ export class ItemsService {
 
     try {
       return await this.prismaService.items.create({
-        data: { itemcom, itemest, itemgas, itemven, prodcod, numserie, itemgar },
+        data: {
+          itemcom,
+          itemest,
+          itemgas,
+          itemven,
+          prodcod,
+          numserie,
+          itemgar: this.toIsoString(itemgar?.toString()),
+        },
       });
     } catch (error) {
       if (error.code === "P2003") {
@@ -128,9 +162,14 @@ export class ItemsService {
   }
 
   async createMany(createItemDto: CreateItemDto[]) {
+    const createItemData = createItemDto.map((i) => ({
+      ...i,
+      itemgar: this.toIsoString(i.itemgar?.toString()),
+    }));
+
     try {
       return await this.prismaService.items.createMany({
-        data: createItemDto,
+        data: createItemData,
       });
     } catch (error) {
       if (error.code === "P2003") {
@@ -146,6 +185,11 @@ export class ItemsService {
   }
 
   async update(itemcod: number, updateItemDto: UpdateItemDto) {
+    const updateItemData = {
+      ...updateItemDto,
+      itemgar: this.toIsoString(updateItemDto.itemgar?.toString()),
+    };
+
     try {
       const existing = await this.prismaService.items.findUnique({
         where: { itemcod },
@@ -157,7 +201,7 @@ export class ItemsService {
 
       return await this.prismaService.items.update({
         where: { itemcod },
-        data: updateItemDto,
+        data: updateItemData,
       });
     } catch (error) {
       if (error.code === "P2003") {
@@ -189,5 +233,23 @@ export class ItemsService {
         "An error occurred while deleting the item",
       );
     }
+  }
+
+  formatDateRes(fechaIso: Date | null): string | null {
+    if (!fechaIso) return null;
+    const date = new Date(fechaIso);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
+  }
+
+  toIsoString(fecha: string | null | undefined): string | null {
+    if (!fecha) return null;
+    const [year, month, day] = fecha.split("-");
+    const date = new Date(
+      Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0),
+    );
+    return date.toISOString();
   }
 }

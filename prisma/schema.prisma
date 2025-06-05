@@ -115,8 +115,8 @@ model ordenes {
   vendcod   Int
   clicod    String?
   clidir    String   @db.VarChar(255)
-  ordfec    DateTime
-  ordfecpro DateTime
+  ordfec    DateTime?
+  ordfecpro DateTime?
   ordmar    String?  @db.VarChar(63)
   ordequ    String?  @db.VarChar(63)
   ordnumtal String?  @db.VarChar(50)

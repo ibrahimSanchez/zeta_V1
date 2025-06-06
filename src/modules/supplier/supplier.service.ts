@@ -274,7 +274,8 @@ export class SupplierService {
     return suppliers;
   }
 
-  async remove(provcod: string) {
+  
+    async remove(provcod: string) {
     try {
       const existing = await this.prismaService.proveedores.findUnique({
         where: { provcod },
@@ -296,4 +297,6 @@ export class SupplierService {
       );
     }
   }
+
+
 }

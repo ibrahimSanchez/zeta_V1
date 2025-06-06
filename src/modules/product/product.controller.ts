@@ -169,7 +169,6 @@ export class ProductController {
     }
   }
 
-
    @Public()
     @Delete("delete/:id")
     @ApiOperation({ summary: "Eliminar un producto" })
@@ -188,4 +187,7 @@ export class ProductController {
     remove(@Param("id") id: string) {
       return this.productService.remove(id);
     }
+
+
+  
 }

@@ -177,6 +177,7 @@ export class SupplierController {
     }
   }
 
+
   @Public()
   @Delete("delete/:id")
   @ApiOperation({ summary: "Eliminar un proveedor" })
@@ -195,4 +196,6 @@ export class SupplierController {
   remove(@Param("id") id: string) {
     return this.supplierService.remove(id);
   }
+
+
 }

@@ -369,6 +369,7 @@ export class ProductService {
     }
   }
 
+
   async remove(prodcod: string) {
     try {
       const existing = await this.prismaService.productos.findUnique({
@@ -392,6 +393,7 @@ export class ProductService {
     }
   }
 
+  
   private mapCurrency(monedaCodigo: number): Currencies {
     switch (monedaCodigo) {
       case 1:

@@ -7,11 +7,18 @@ import {
   Param,
   Patch,
   Body,
+  Delete,
 } from "@nestjs/common";
 import { SupplierService } from "./supplier.service";
 import { Public } from "src/modules/auth/decorators/public.decorator";
 import { UpdateSupplierDto } from "./dto/update-supplier.dto";
-import { CreateSupplierDto, SupplierFetchResponseDto, SwaggerCreateSupplierResponse, SwaggerSupplierDto, SwaggerUpdateSupplierDto } from "./dto/create-supplier.dto";
+import {
+  CreateSupplierDto,
+  SupplierFetchResponseDto,
+  SwaggerCreateSupplierResponse,
+  SwaggerSupplierDto,
+  SwaggerUpdateSupplierDto,
+} from "./dto/create-supplier.dto";
 import {
   ApiTags,
   ApiOperation,
@@ -168,5 +175,24 @@ export class SupplierController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Public()
+  @Delete("delete/:id")
+  @ApiOperation({ summary: "Eliminar un proveedor" })
+  @ApiParam({
+    name: "id",
+    description: "Codigo del proveedor a eliminar",
+    type: String,
+  })
+  @ApiResponse({
+    status: 200,
+    description: "Proveedor eliminado exitosamente",
+    type: SwaggerSupplierDto,
+  })
+  @ApiResponse({ status: 404, description: "Proveedor no encontrado" })
+  @ApiResponse({ status: 500, description: "Error interno del servidor" })
+  remove(@Param("id") id: string) {
+    return this.supplierService.remove(id);
   }
 }

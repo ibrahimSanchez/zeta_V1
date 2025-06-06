@@ -8,6 +8,7 @@ import {
   HttpException,
   HttpStatus,
   HttpCode,
+  Delete,
 } from "@nestjs/common";
 import { ProductService } from "./product.service";
 import { CreateProductDto, ProductFetchResponseDto, SwaggerCreateProductDto, SwaggerProductDto, SwaggerUpdateProductDto } from "./dto/create-product.dto";
@@ -167,4 +168,24 @@ export class ProductController {
       );
     }
   }
+
+
+   @Public()
+    @Delete("delete/:id")
+    @ApiOperation({ summary: "Eliminar un producto" })
+    @ApiParam({
+      name: "id",
+      description: "Codigo del producto a eliminar",
+      type: String,
+    })
+    @ApiResponse({
+      status: 200,
+      description: "Producto eliminado exitosamente",
+      type: SwaggerProductDto,
+    })
+    @ApiResponse({ status: 404, description: "Producto no encontrado" })
+    @ApiResponse({ status: 500, description: "Error interno del servidor" })
+    remove(@Param("id") id: string) {
+      return this.productService.remove(id);
+    }
 }

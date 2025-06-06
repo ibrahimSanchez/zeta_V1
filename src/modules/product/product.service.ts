@@ -14,7 +14,7 @@ import { Prisma, productos } from "@prisma/client";
 import { UpdateProductDto } from "./dto/update-product.dto";
 import { ProductTypeService } from "../product-type/product-type.service";
 import { ProductResponse } from "./types/productResponse";
-import { Logger } from '@nestjs/common'; // Importa Logger
+import { Logger } from "@nestjs/common"; // Importa Logger
 
 @Injectable()
 export class ProductService {
@@ -369,6 +369,29 @@ export class ProductService {
     }
   }
 
+  async remove(prodcod: string) {
+    try {
+      const existing = await this.prismaService.productos.findUnique({
+        where: { prodcod },
+      });
+
+      if (!existing) {
+        throw new NotFoundException(
+          `Product with prodcod ${prodcod} not found`,
+        );
+      }
+
+      return await this.prismaService.productos.delete({
+        where: { prodcod },
+      });
+    } catch (error) {
+      console.error("Delete product error:", error);
+      throw new InternalServerErrorException(
+        "An error occurred while deleting the product",
+      );
+    }
+  }
+
   private mapCurrency(monedaCodigo: number): Currencies {
     switch (monedaCodigo) {
       case 1:
@@ -381,5 +404,4 @@ export class ProductService {
         return Currencies.uyu;
     }
   }
-
 }

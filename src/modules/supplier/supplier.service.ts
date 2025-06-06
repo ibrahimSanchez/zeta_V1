@@ -27,14 +27,13 @@ export class SupplierService {
     } else return null;
   }
 
-
- //todo: *********************************************************************************
+  //todo: *********************************************************************************
   async getAllSuppliersNamesCodes() {
     try {
       return await this.prismaService.proveedores.findMany({
         select: {
           provcod: true,
-          provnom: true
+          provnom: true,
         },
       });
     } catch (error) {
@@ -51,7 +50,6 @@ export class SupplierService {
       throw new InternalServerErrorException("Unexpected error occurred");
     }
   }
-
 
   //todo: *********************************************************************************
   async getAllSupplier(): Promise<proveedores[]> {
@@ -274,5 +272,28 @@ export class SupplierService {
       }
     }
     return suppliers;
+  }
+
+  async remove(provcod: string) {
+    try {
+      const existing = await this.prismaService.proveedores.findUnique({
+        where: { provcod },
+      });
+
+      if (!existing) {
+        throw new NotFoundException(
+          `Supplier with provcod ${provcod} not found`,
+        );
+      }
+
+      return await this.prismaService.proveedores.delete({
+        where: { provcod },
+      });
+    } catch (error) {
+      console.error("Delete supplier error:", error);
+      throw new InternalServerErrorException(
+        "An error occurred while deleting the supplier",
+      );
+    }
   }
 }

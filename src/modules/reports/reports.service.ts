@@ -21,9 +21,8 @@ export class ReportsService {
 
   //todo: *********************************************************************************
   async clientReport(clientReportQuery: ClientReportQuery) {
-    // return clientReportQuery
-    // console.log(clientReportQuery);
     const { clicod, startDate, endDate } = clientReportQuery;
+    console.log("clientReportQuery", clientReportQuery);
     try {
       const foundClient = await this.prismaService.clientes.findUnique({
         where: {
@@ -275,7 +274,7 @@ export class ReportsService {
   //todo: *********************************************************************************
   async datesReport(datesReportQuery: DatesReportQuery) {
     const { startDate, endDate } = datesReportQuery;
-
+    
     try {
       const foundOrders = await this.prismaService.ordenes.findMany({
         // take: 1000,
@@ -309,6 +308,7 @@ export class ReportsService {
       if (foundOrders.length === 0) {
         return [];
       }
+      console.log("foundOrders", foundOrders);
       const foundStates = await this.orderStateService.findAll();
       const foundCurrencies = await this.currencyService.findAll();
       const foundPaymentMethods = await this.paymentMethodService.findAll();
@@ -332,7 +332,7 @@ export class ReportsService {
         const paymentMethod = foundPaymentMethods.find(
           (pm) => pm.pagocod === pagocod,
         );
-
+        console.log("order", order);
         return {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
@@ -610,8 +610,10 @@ export class ReportsService {
 
       const ordMap = new Map<string, number>();
       ordenes.forEach((o) => {
-        if (!ordMap.has(o.prodcod)) {
-          ordMap.set(o.prodcod, o.ordcod);
+        if (o.ordcod !== null && o.ordcod !== undefined && o.prodcod !== null && o.prodcod !== undefined){
+          if (!ordMap.has(o.prodcod)) {
+           ordMap.set(o.prodcod, o.ordcod);
+          }
         }
       });
 

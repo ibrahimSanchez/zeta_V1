@@ -207,3 +207,8 @@ export class SwaggerOrderResponseDto {
   @ApiProperty({ description: "Product count" })
   productCant: number;
 }
+
+export class SwaggerDuplicateOrderDto {
+  @ApiProperty({ description: "Codigo de orden" })
+  ordcod: number;
+}

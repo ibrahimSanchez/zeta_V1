@@ -23,6 +23,7 @@ import {
   CreateOrderDto,
   SwaggerCreateOrderDto,
   SwaggerDeleteOrdersDto,
+  SwaggerDuplicateOrderDto,
   SwaggerOrderResponseDto,
   SwaggerUpdateOrderDto,
 } from "./dto/create-order.dto";
@@ -92,6 +93,28 @@ export class OrdersController {
   })
   async createOrder(@Body() createOrderDto: CreateOrderDto) {
     return this.ordersService.createOrder(createOrderDto);
+  }
+
+  @Public()
+  @Post("duplicate")
+  @ApiOperation({
+    summary: "Duplicar orden",
+    description: "Duplica una orden en el sistema",
+  })
+  @ApiBody({
+    type: SwaggerDuplicateOrderDto,
+    description: "Datos requeridos para duplicar la orden",
+  })
+  @ApiCreatedResponse({
+    description: "Orden duplicada exitosamente",
+    type: SwaggerOrderResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Datos de entrada inválidos",
+  })
+  async duplicateOrder(@Body() body: { ordcod: number }) {
+    return this.ordersService.duplicateOrder(body.ordcod);
   }
 
   @Public()

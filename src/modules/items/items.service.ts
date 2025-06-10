@@ -135,8 +135,16 @@ export class ItemsService {
   }
 
   async create(createItemDto: CreateItemDto) {
-    const { itemcom, itemest, itemgas, itemven, prodcod, numserie, itemgar } =
-      createItemDto;
+    const {
+      itemcom,
+      itemest,
+      itemgas,
+      itemven,
+      prodcod,
+      numserie,
+      itemgar,
+      ordprodcod,
+    } = createItemDto;
 
     try {
       return await this.prismaService.items.create({
@@ -147,6 +155,7 @@ export class ItemsService {
           itemven,
           prodcod,
           numserie,
+          ordprodcod,
           itemgar: this.toIsoString(itemgar?.toString()),
         },
       });

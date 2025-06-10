@@ -111,16 +111,16 @@ model monedas {
 }
 
 model ordenes {
-  ordcod    Int      @id @default(autoincrement())
+  ordcod    Int       @id @default(autoincrement())
   vendcod   Int
   clicod    String?
-  clidir    String   @db.VarChar(255)
+  clidir    String    @db.VarChar(255)
   ordfec    DateTime?
   ordfecpro DateTime?
-  ordmar    String?  @db.VarChar(63)
-  ordequ    String?  @db.VarChar(63)
-  ordnumtal String?  @db.VarChar(50)
-  ordmat    String?  @db.VarChar(50)
+  ordmar    String?   @db.VarChar(63)
+  ordequ    String?   @db.VarChar(63)
+  ordnumtal String?   @db.VarChar(50)
+  ordmat    String?   @db.VarChar(50)
   ordarmpor Int?
   ordins    Boolean?
   ordent    Boolean?
@@ -184,22 +184,6 @@ model productos {
   items items[]
 
   @@map("productos")
-}
-
-model items {
-  itemcod  Int      @id @default(autoincrement())
-  itemven  Float
-  itemcom  Float
-  itemgas  Float
-  itemfec  DateTime @default(now())
-  itemgar  DateTime?
-  itemest  String   @db.VarChar(20)
-  prodcod  String   @db.VarChar(50)
-  numserie String
-
-  productos productos @relation(fields: [prodcod], references: [prodcod])
-
-  @@map("items")
 }
 
 model proveedores {
@@ -333,11 +317,30 @@ model ordenesproductos {
   prodvent       Float
   prodgast       Float
 
+  items items[]
   // orden    ordenes     @relation(fields: [ordcod], references: [ordcod])
   // producto productos   @relation(fields: [prodcod], references: [prodcod])
   // proveedor proveedores @relation(fields: [provcod], references: [provcod])
 
   @@map("ordenesproductos")
+}
+
+model items {
+  itemcod    Int       @id @default(autoincrement())
+  itemven    Float
+  itemcom    Float
+  itemgas    Float
+  itemfec    DateTime  @default(now())
+  itemgar    DateTime?
+  itemest    String    @db.VarChar(20)
+  prodcod    String    @db.VarChar(50)
+  numserie   String
+  ordprodcod Int? // Cambiado a opcional con el signo ?
+
+  productos        productos         @relation(fields: [prodcod], references: [prodcod], onDelete: Cascade)
+  ordenesproductos ordenesproductos? @relation(fields: [ordprodcod], references: [ordprodcod], onDelete: Cascade)
+
+  @@map("items")
 }
 
 model tipos {

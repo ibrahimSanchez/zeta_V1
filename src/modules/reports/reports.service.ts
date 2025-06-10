@@ -40,6 +40,7 @@ export class ReportsService {
       }
 
       const foundOrders = await this.prismaService.ordenes.findMany({
+        orderBy: { ordfec: "desc" },
         where: {
           clicod,
           ordfec: {
@@ -134,6 +135,7 @@ export class ReportsService {
       }
 
       const foundOrders = await this.prismaService.ordenes.findMany({
+        orderBy: { ordfec: "desc" },
         where: {
           ordcod: { in: ordcods },
           ordfec: {
@@ -212,6 +214,7 @@ export class ReportsService {
     try {
       const foundOrders = await this.prismaService.ordenes.findMany({
         where: { ordmar },
+        orderBy: { ordfec: "desc" },
         select: {
           ordcod: true,
           ordfec: true,
@@ -274,7 +277,7 @@ export class ReportsService {
   //todo: *********************************************************************************
   async datesReport(datesReportQuery: DatesReportQuery) {
     const { startDate, endDate } = datesReportQuery;
-    
+
     try {
       const foundOrders = await this.prismaService.ordenes.findMany({
         // take: 1000,
@@ -290,6 +293,7 @@ export class ReportsService {
             lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
+        orderBy: { ordfec: "desc" },
         select: {
           ordcod: true,
           clicod: true,
@@ -370,6 +374,7 @@ export class ReportsService {
             lte: this.toIsoString(endDate.toString()) || undefined,
           },
         },
+        orderBy: { ordfec: "desc" },
         select: {
           ordcod: true,
         },
@@ -488,6 +493,7 @@ export class ReportsService {
           lte: this.toIsoString(endDate.toString()) || undefined,
         },
       },
+      orderBy: { ordfec: "desc" },
       select: {
         ordcod: true,
         ordfec: true,
@@ -593,6 +599,7 @@ export class ReportsService {
           itemfec: true,
           itemgar: true,
           itemest: true,
+          ordprodcod: true
         },
       });
 
@@ -610,9 +617,14 @@ export class ReportsService {
 
       const ordMap = new Map<string, number>();
       ordenes.forEach((o) => {
-        if (o.ordcod !== null && o.ordcod !== undefined && o.prodcod !== null && o.prodcod !== undefined){
+        if (
+          o.ordcod !== null &&
+          o.ordcod !== undefined &&
+          o.prodcod !== null &&
+          o.prodcod !== undefined
+        ) {
           if (!ordMap.has(o.prodcod)) {
-           ordMap.set(o.prodcod, o.ordcod);
+            ordMap.set(o.prodcod, o.ordcod);
           }
         }
       });
@@ -632,6 +644,11 @@ export class ReportsService {
     }
   }
 
+
+
+
+
+  
   calProfitPercentage(ordmon: number | null, ordcos: number | null) {
     if (!ordmon || !ordcos) return { profitPercentage: null, commission: null };
 
@@ -642,6 +659,11 @@ export class ReportsService {
     const commission: number = mon * 0.1;
     return { profitPercentage, commission };
   }
+
+
+
+
+
   formatDateRes(fechaIso: Date | null): string | null {
     if (!fechaIso) return null;
     const date = new Date(fechaIso);

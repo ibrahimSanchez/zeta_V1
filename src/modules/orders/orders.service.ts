@@ -16,6 +16,7 @@ import { PaymentMethodService } from "../payment-method/payment-method.service";
 import { CurrencyService } from "../currency/currency.service";
 import { ClientService } from "../client/client.service";
 import { Logger } from "@nestjs/common";
+import { MinioService } from "../minio/minio.service";
 
 @Injectable()
 export class OrdersService {
@@ -26,6 +27,7 @@ export class OrdersService {
     private readonly currencyService: CurrencyService,
     private readonly paymentMethodService: PaymentMethodService,
     private readonly clientService: ClientService,
+    private readonly minioService: MinioService,
   ) {}
 
   //todo: *********************************************************************************
@@ -102,181 +104,191 @@ export class OrdersService {
   }
 
   //todo: *********************************************************************************
- async getOrderByOrdcod(ordcod: number) {
-  try {
-    const foundOrder = await this.prismaService.ordenes.findUnique({
-      where: { ordcod },
-      select: {
-        ordcod: true,
-        ordfec: true,
-        ordnumfac: true,
-        vendcod: true,
-        clicod: true,
-        ordfecpro: true,
-        ordmon: true,
-        ordcos: true,
-        ordcom: true,
-        ordnuev: true,
-        pagocod: true,
-        ordobs: true,
-        moncod: true,
-        estcod: true,
-      },
-    });
-
-    if (!foundOrder) {
-      throw new NotFoundException(
-        `The order with code ${ordcod} cannot be found`,
-      );
-    }
-
-    // Obtener estado
-    let state;
-    if (foundOrder.estcod) {
-      const foundState = await this.prismaService.estados.findFirst({
-        where: { estcod: foundOrder.estcod },
-        select: { estnom: true },
-      });
-      state = foundState?.estnom;
-    } else state = "N/A";
-
-    // Obtener vendedor
-    const foundVendor = await this.prismaService.vendedores.findUnique({
-      where: { vendcod: foundOrder.vendcod },
-      select: { vendcod: true, vendnom: true },
-    });
-
-    // Obtener proveedores
-    const foundSuppliers = await this.supplierService.getAllSupplier();
-
-   
-    let foundClient
-    if (foundOrder.clicod) {
-      foundClient = await this.prismaService.clientes.findUnique({
-        where: { clicod: foundOrder.clicod },
+  async getOrderByOrdcod(ordcod: number) {
+    try {
+      const foundOrder = await this.prismaService.ordenes.findUnique({
+        where: { ordcod },
         select: {
-          clinom: true,
-          cliruc: true,
-          clirazsoc: true,
-          clidir: true,
+          ordcod: true,
+          ordfec: true,
+          ordnumfac: true,
+          vendcod: true,
+          clicod: true,
+          ordfecpro: true,
+          ordmon: true,
+          ordcos: true,
+          ordcom: true,
+          ordnuev: true,
+          pagocod: true,
+          ordobs: true,
+          moncod: true,
+          estcod: true,
         },
       });
-      // if (client) foundClient = client;
-    }
 
-    // Obtener ordenesproductos con sus items
-    const foundOrderProducts = await this.prismaService.ordenesproductos.findMany({
-      where: { ordcod },
-      include: {
-        items: true, // Esto incluirá todos los items relacionados
-      },
-    });
+      if (!foundOrder) {
+        throw new NotFoundException(
+          `The order with code ${ordcod} cannot be found`,
+        );
+      }
 
-    const prodcods = [...new Set(foundOrderProducts.map((p) => p.prodcod))];
+      // Obtener estado
+      let state;
+      if (foundOrder.estcod) {
+        const foundState = await this.prismaService.estados.findFirst({
+          where: { estcod: foundOrder.estcod },
+          select: { estnom: true },
+        });
+        state = foundState?.estnom;
+      } else state = "N/A";
 
-    // Obtener información de productos
-    const products = await this.prismaService.productos.findMany({
-      where: { prodcod: { in: prodcods } },
-      select: {
-        prodcod: true,
-        prodnom: true,
-        tipprodcod: true,
-        parentproductid: true,
-      },
-    });
+      // Obtener vendedor
+      const foundVendor = await this.prismaService.vendedores.findUnique({
+        where: { vendcod: foundOrder.vendcod },
+        select: { vendcod: true, vendnom: true },
+      });
 
-    // Obtener tipos de producto
-    const foundProductTypes = await this.prismaService.tipoproductos.findMany();
-    const tipoMap = new Map<string, string>();
-    foundProductTypes.forEach((tipo) => {
-      tipoMap.set(tipo.tipprodcod, tipo.tipprodnom || "N/A");
-    });
+      // Obtener proveedores
+      const foundSuppliers = await this.supplierService.getAllSupplier();
 
-    // Mapear productos con su información de orden y items
-    const productsWithCost = products.map((product) => {
-      const orderProducts = foundOrderProducts.filter(op => op.prodcod === product.prodcod);
-      
-      // Combinar todos los items de los ordenesproductos para este producto
-      const items = orderProducts.flatMap(op => 
-        op.items.map(item => ({
-          ...item,
-          itemfec: this.formatDateRes(item.itemfec),
-          itemgar: this.formatDateRes(item.itemgar),
-          ordprodcod: op.ordprodcod, // Añadir el ordprodcod al item
-        }))
-      );
+      let foundClient;
+      if (foundOrder.clicod) {
+        foundClient = await this.prismaService.clientes.findUnique({
+          where: { clicod: foundOrder.clicod },
+          select: {
+            clinom: true,
+            cliruc: true,
+            clirazsoc: true,
+            clidir: true,
+          },
+        });
+        // if (client) foundClient = client;
+      }
 
-      // Tomamos los datos del primer ordenproducto para este producto
-      const firstOrderProduct = orderProducts[0];
-      
-      return {
-        ...product,
-        items: items,
-        prodvent: firstOrderProduct?.prodvent || 0,
-        prodgast: firstOrderProduct?.prodgast || 0,
-        prodcost: firstOrderProduct?.prodcost || 0,
-        ordprodcan: orderProducts.reduce((sum, op) => sum + (op.ordprodcan || 0), 0),
-        tipprodnom: tipoMap.get(product.tipprodcod ?? "") || "N/A",
-        provnom: foundSuppliers.find(s => s.provcod === firstOrderProduct?.provcod)?.provnom || "N/A",
-        provcod: firstOrderProduct?.provcod || null,
+      // Obtener ordenesproductos con sus items
+      const foundOrderProducts =
+        await this.prismaService.ordenesproductos.findMany({
+          where: { ordcod },
+          include: {
+            items: true, // Esto incluirá todos los items relacionados
+          },
+        });
+
+      const prodcods = [...new Set(foundOrderProducts.map((p) => p.prodcod))];
+
+      // Obtener información de productos
+      const products = await this.prismaService.productos.findMany({
+        where: { prodcod: { in: prodcods } },
+        select: {
+          prodcod: true,
+          prodnom: true,
+          tipprodcod: true,
+          parentproductid: true,
+        },
+      });
+
+      // Obtener tipos de producto
+      const foundProductTypes =
+        await this.prismaService.tipoproductos.findMany();
+      const tipoMap = new Map<string, string>();
+      foundProductTypes.forEach((tipo) => {
+        tipoMap.set(tipo.tipprodcod, tipo.tipprodnom || "N/A");
+      });
+
+      // Mapear productos con su información de orden y items
+      const productsWithCost = products.map((product) => {
+        const orderProducts = foundOrderProducts.filter(
+          (op) => op.prodcod === product.prodcod,
+        );
+
+        // Combinar todos los items de los ordenesproductos para este producto
+        const items = orderProducts.flatMap((op) =>
+          op.items.map((item) => ({
+            ...item,
+            itemfec: this.formatDateRes(item.itemfec),
+            itemgar: this.formatDateRes(item.itemgar),
+            ordprodcod: op.ordprodcod, // Añadir el ordprodcod al item
+          })),
+        );
+
+        // Tomamos los datos del primer ordenproducto para este producto
+        const firstOrderProduct = orderProducts[0];
+
+        return {
+          ...product,
+          items: items,
+          prodvent: firstOrderProduct?.prodvent || 0,
+          prodgast: firstOrderProduct?.prodgast || 0,
+          prodcost: firstOrderProduct?.prodcost || 0,
+          ordprodcan: orderProducts.reduce(
+            (sum, op) => sum + (op.ordprodcan || 0),
+            0,
+          ),
+          tipprodnom: tipoMap.get(product.tipprodcod ?? "") || "N/A",
+          provnom:
+            foundSuppliers.find((s) => s.provcod === firstOrderProduct?.provcod)
+              ?.provnom || "N/A",
+          provcod: firstOrderProduct?.provcod || null,
+        };
+      });
+
+      // Obtener moneda y método de pago
+      let foundCurrencies;
+      if (foundOrder.moncod) {
+        foundCurrencies = await this.currencyService.findOne(foundOrder.moncod);
+      }
+
+      let foundPaymentMethods;
+      if (foundOrder.pagocod) {
+        foundPaymentMethods = await this.paymentMethodService.findOne(
+          foundOrder.pagocod,
+        );
+      }
+
+      // Construir respuesta final
+      const OrderResponse = {
+        ordcod: foundOrder.ordcod,
+        ordfec: foundOrder.ordfec,
+        pagocod: foundOrder.pagocod,
+        pagonom: foundPaymentMethods?.pagonom || null,
+        moncod: foundOrder.moncod,
+        monnom: foundCurrencies?.monnom || null,
+        estcod: foundOrder.estcod,
+        estnom: state,
+        ordnumfac: foundOrder.ordnumfac,
+        ordobs: foundOrder.ordobs || "N/A",
+        vendcod: foundOrder.vendcod || "N/A",
+        vendnom: foundVendor?.vendnom || "N/A",
+        clicod: foundOrder.clicod || "N/A",
+        clinom: foundClient.clinom || "N/A",
+        cliruc: foundClient.cliruc || "N/A",
+        clirazsoc: foundClient.clirazsoc || "N/A",
+        clidir: foundClient.clidir || "N/A",
+        ordcom: foundOrder.ordcom || 0,
+        ordfecpro: this.formatDateRes(foundOrder.ordfecpro),
+        ordmon: foundOrder.ordmon || 0,
+        ordcos: foundOrder.ordcos || 0,
+        ordnuev: foundOrder.ordnuev,
+        products: productsWithCost,
+        productCant: prodcods.length,
       };
-    });
 
-    // Obtener moneda y método de pago
-    let foundCurrencies;
-    if (foundOrder.moncod) {
-      foundCurrencies = await this.currencyService.findOne(foundOrder.moncod);
+      return OrderResponse;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.log(error);
+        throw new BadRequestException("Invalid order code format");
+      }
+
+      throw new InternalServerErrorException(
+        "An unexpected error occurred while fetching order information",
+      );
     }
-
-    let foundPaymentMethods;
-    if (foundOrder.pagocod) {
-      foundPaymentMethods = await this.paymentMethodService.findOne(foundOrder.pagocod);
-    }
-
-    // Construir respuesta final
-    const OrderResponse = {
-      ordcod: foundOrder.ordcod,
-      ordfec: foundOrder.ordfec,
-      pagocod: foundOrder.pagocod,
-      pagonom: foundPaymentMethods?.pagonom || null,
-      moncod: foundOrder.moncod,
-      monnom: foundCurrencies?.monnom || null,
-      estcod: foundOrder.estcod,
-      estnom: state,
-      ordnumfac: foundOrder.ordnumfac,
-      ordobs: foundOrder.ordobs || "N/A",
-      vendcod: foundOrder.vendcod || "N/A",
-      vendnom: foundVendor?.vendnom || "N/A",
-      clicod: foundOrder.clicod || "N/A",
-      clinom: foundClient.clinom || "N/A",
-      cliruc: foundClient.cliruc || "N/A",
-      clirazsoc: foundClient.clirazsoc || "N/A",
-      clidir: foundClient.clidir || "N/A",
-      ordcom: foundOrder.ordcom || 0,
-      ordfecpro: this.formatDateRes(foundOrder.ordfecpro),
-      ordmon: foundOrder.ordmon || 0,
-      ordcos: foundOrder.ordcos || 0,
-      ordnuev: foundOrder.ordnuev,
-      products: productsWithCost,
-      productCant: prodcods.length,
-    };
-
-    return OrderResponse;
-  } catch (error) {
-    if (error instanceof NotFoundException) {
-      throw error;
-    }
-
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.log(error);
-      throw new BadRequestException("Invalid order code format");
-    }
-
-    throw new InternalServerErrorException(
-      "An unexpected error occurred while fetching order information",
-    );
   }
-}
 
   //todo: *********************************************************************************
   async createOrder(createOrderDto: CreateOrderDto) {
@@ -310,21 +322,12 @@ export class OrdersService {
 
       const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
 
-      const lastOrdnumfac = await this.prismaService.ordenes.findFirst({
-        orderBy: { ordnumfac: "desc" },
-        select: { ordnumfac: true },
-      });
-
-      const nextOrdnumfac = lastOrdnumfac?.ordnumfac
-        ? lastOrdnumfac.ordnumfac + 1
-        : 1;
-
       // Preparar datos de la orden
       const orderData = {
         ordcod: nextOrdcod,
         ordfec: ordfec ? this.toIsoString(ordfec.toString()) : null,
         ordfecpro: ordfecpro ? this.toIsoString(ordfecpro.toString()) : null,
-        ordnumfac: ordnumfac || nextOrdnumfac,
+        ordnumfac: ordnumfac,
         vendcod,
         clicod,
         ordcom,
@@ -661,97 +664,96 @@ export class OrdersService {
   }
 
   async duplicateOrder(ordcod: number) {
-  return this.prismaService.$transaction(async (prisma) => {
-    try {
-      // 1. Obtener la orden original
-      const foundOrder = await prisma.ordenes.findUnique({
-        where: { ordcod },
-      });
+    return this.prismaService.$transaction(async (prisma) => {
+      try {
+        // 1. Obtener la orden original
+        const foundOrder = await prisma.ordenes.findUnique({
+          where: { ordcod },
+        });
 
-      if (!foundOrder) {
-        throw new NotFoundException(
-          `The order with code ${ordcod} cannot be found`,
-        );
-      }
+        if (!foundOrder) {
+          throw new NotFoundException(
+            `The order with code ${ordcod} cannot be found`,
+          );
+        }
 
-      // 2. Obtener productos de la orden con sus items
-      const foundOrderProducts = await prisma.ordenesproductos.findMany({
-        where: { ordcod },
-        include: {
-          items: true,
-        },
-      });
-
-      // 3. Obtener nuevo código de orden
-      const lastOrder = await prisma.ordenes.findFirst({
-        orderBy: { ordcod: "desc" },
-        select: { ordcod: true },
-      });
-      const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
-
-      // 4. Obtener último ordprodcod para generar los nuevos
-      const lastOrderProdCod = await prisma.ordenesproductos.findFirst({
-        orderBy: { ordprodcod: "desc" },
-        select: { ordprodcod: true },
-      });
-      const nextProdOrdCod = lastOrderProdCod?.ordprodcod
-        ? lastOrderProdCod.ordprodcod + 1
-        : 1;
-
-      // 5. Duplicar la orden principal
-      const newOrder = await prisma.ordenes.create({
-        data: {
-          ...foundOrder,
-          ordcod: nextOrdcod,
-        },
-      });
-
-      // 6. Crear un mapa para relacionar ordprodcod antiguos con los nuevos
-      const ordprodcodMap = new Map<number, number>();
-
-      // 7. Duplicar los ordenesproductos y sus items
-      for (let i = 0; i < foundOrderProducts.length; i++) {
-        const originalOp = foundOrderProducts[i];
-        const newOrdprodcod = nextProdOrdCod + i;
-
-        // Guardar la relación entre el código antiguo y el nuevo
-        ordprodcodMap.set(originalOp.ordprodcod, newOrdprodcod);
-
-        // Crear el nuevo ordenproducto
-        await prisma.ordenesproductos.create({
-          data: {
-            ...originalOp,
-            ordcod: nextOrdcod,
-            ordprodcod: newOrdprodcod,
-            items: undefined, // Excluir items para crearlos después
+        // 2. Obtener productos de la orden con sus items
+        const foundOrderProducts = await prisma.ordenesproductos.findMany({
+          where: { ordcod },
+          include: {
+            items: true,
           },
         });
 
-        // Duplicar los items asociados con el nuevo ordprodcod
-        if (originalOp.items && originalOp.items.length > 0) {
-          await prisma.items.createMany({
-            data: originalOp.items.map(item => ({
-              ...item,
-              ordprodcod: newOrdprodcod, // Usar el nuevo código
-              itemcod: undefined, // Auto-generar nuevo itecod
-            })),
+        // 3. Obtener nuevo código de orden
+        const lastOrder = await prisma.ordenes.findFirst({
+          orderBy: { ordcod: "desc" },
+          select: { ordcod: true },
+        });
+        const nextOrdcod = lastOrder?.ordcod ? lastOrder.ordcod + 1 : 1;
+
+        // 4. Obtener último ordprodcod para generar los nuevos
+        const lastOrderProdCod = await prisma.ordenesproductos.findFirst({
+          orderBy: { ordprodcod: "desc" },
+          select: { ordprodcod: true },
+        });
+        const nextProdOrdCod = lastOrderProdCod?.ordprodcod
+          ? lastOrderProdCod.ordprodcod + 1
+          : 1;
+
+        // 5. Duplicar la orden principal
+        const newOrder = await prisma.ordenes.create({
+          data: {
+            ...foundOrder,
+            ordcod: nextOrdcod,
+          },
+        });
+
+        // 6. Crear un mapa para relacionar ordprodcod antiguos con los nuevos
+        const ordprodcodMap = new Map<number, number>();
+
+        // 7. Duplicar los ordenesproductos y sus items
+        for (let i = 0; i < foundOrderProducts.length; i++) {
+          const originalOp = foundOrderProducts[i];
+          const newOrdprodcod = nextProdOrdCod + i;
+
+          // Guardar la relación entre el código antiguo y el nuevo
+          ordprodcodMap.set(originalOp.ordprodcod, newOrdprodcod);
+
+          // Crear el nuevo ordenproducto
+          await prisma.ordenesproductos.create({
+            data: {
+              ...originalOp,
+              ordcod: nextOrdcod,
+              ordprodcod: newOrdprodcod,
+              items: undefined, // Excluir items para crearlos después
+            },
           });
+
+          // Duplicar los items asociados con el nuevo ordprodcod
+          if (originalOp.items && originalOp.items.length > 0) {
+            await prisma.items.createMany({
+              data: originalOp.items.map((item) => ({
+                ...item,
+                ordprodcod: newOrdprodcod, // Usar el nuevo código
+                itemcod: undefined, // Auto-generar nuevo itecod
+              })),
+            });
+          }
         }
-      }
 
-      return newOrder.ordcod;
-
-    } catch (error) {
-      console.error("Error al duplicar órden:", error);
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        throw new InternalServerErrorException(
-          "Error de base de datos al duplicar órden",
-        );
+        return newOrder.ordcod;
+      } catch (error) {
+        console.error("Error al duplicar órden:", error);
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          throw new InternalServerErrorException(
+            "Error de base de datos al duplicar órden",
+          );
+        }
+        throw error;
       }
-      throw error;
-    }
-  });
-}
+    });
+  }
 
   formatDateRes(fechaIso: Date | null): string | null {
     if (!fechaIso) return null;

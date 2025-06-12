@@ -14,12 +14,22 @@ import { PaymentMethodModule } from './modules/payment-method/payment-method.mod
 import { OrderStateModule } from './modules/order-state/order-state.module';
 import { ItemsModule } from './modules/items/items.module';
 import { FetchDataModule } from './modules/fetch-data/fetch-data.module';
+import { MinioModule } from './modules/minio/minio.module';
+import { MulterModule } from "@nestjs/platform-express";
+import { memoryStorage } from "multer";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       envFilePath: ".env",
       isGlobal: true,
+    }),
+
+     MulterModule.register({
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 1024 * 1024 * 50, // 50MB
+      },
     }),
     AuthModule,
     UsersModule,
@@ -34,6 +44,7 @@ import { FetchDataModule } from './modules/fetch-data/fetch-data.module';
     OrderStateModule,
     ItemsModule,
     FetchDataModule,
+    MinioModule,
   ],
   controllers: [],
   providers: [PrismaService],

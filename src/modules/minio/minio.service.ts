@@ -48,7 +48,7 @@ export class MinioService {
       this.logger.error(`Error initializing MinIO bucket: ${error.message}`);
       throw error;
     }
-  }
+  } 
 
   //Todo **********************************************************************************************
   async uploadFiles(

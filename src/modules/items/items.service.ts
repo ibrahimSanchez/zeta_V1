@@ -250,12 +250,12 @@ export class ItemsService {
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear();
-    return `${year}-${month}-${day}`;
+    return `${day}/${month}-${year}`;
   }
 
   toIsoString(fecha: string | null | undefined): string | null {
     if (!fecha) return null;
-    const [year, month, day] = fecha.split("-");
+    const [year, month, day] = fecha.split("/");
     const date = new Date(
       Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0),
     );

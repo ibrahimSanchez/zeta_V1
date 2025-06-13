@@ -33,7 +33,12 @@ export class OrdersService {
   //todo: *********************************************************************************
   async getAllOrders() {
     const allOrders = await this.prismaService.ordenes.findMany({
-      take: 100,
+      where: {
+        estcod: {
+          not: 9,
+        },
+      },
+      // take: 100,
       orderBy: { ordfec: "desc" },
       select: {
         ordcod: true,
@@ -107,7 +112,12 @@ export class OrdersService {
   async getOrderByOrdcod(ordcod: number) {
     try {
       const foundOrder = await this.prismaService.ordenes.findUnique({
-        where: { ordcod },
+        where: {
+          ordcod,
+          estcod: {
+            not: 9,
+          },
+        },
         select: {
           ordcod: true,
           ordfec: true,
@@ -640,7 +650,7 @@ export class OrdersService {
       //   });
       // }
 
-      console.log(result);
+      // console.log(result);
       const [deletedProducts, deletedOrders] = result;
 
       if (deletedOrders.count === 0) {
@@ -761,12 +771,12 @@ export class OrdersService {
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear();
-    return `${year}-${month}-${day}`;
+    return `${day}/${month}/${year}`;
   }
 
   toIsoString(fecha: string | null | undefined): string | null {
     if (!fecha) return null;
-    const [year, month, day] = fecha.split("-");
+    const [year, month, day] = fecha.split("/");
     const date = new Date(
       Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0),
     );

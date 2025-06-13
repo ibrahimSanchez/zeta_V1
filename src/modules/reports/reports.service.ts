@@ -22,7 +22,7 @@ export class ReportsService {
   //todo: *********************************************************************************
   async clientReport(clientReportQuery: ClientReportQuery) {
     const { clicod, startDate, endDate } = clientReportQuery;
-    console.log("clientReportQuery", clientReportQuery);
+    // console.log("clientReportQuery", clientReportQuery);
     try {
       const foundClient = await this.prismaService.clientes.findUnique({
         where: {
@@ -312,7 +312,7 @@ export class ReportsService {
       if (foundOrders.length === 0) {
         return [];
       }
-      console.log("foundOrders", foundOrders);
+      // console.log("foundOrders", foundOrders);
       const foundStates = await this.orderStateService.findAll();
       const foundCurrencies = await this.currencyService.findAll();
       const foundPaymentMethods = await this.paymentMethodService.findAll();
@@ -336,7 +336,7 @@ export class ReportsService {
         const paymentMethod = foundPaymentMethods.find(
           (pm) => pm.pagocod === pagocod,
         );
-        console.log("order", order);
+        // console.log("order", order);
         return {
           ordcod: order.ordcod,
           ordnumfac: order.ordnumfac,
@@ -599,7 +599,7 @@ export class ReportsService {
           itemfec: true,
           itemgar: true,
           itemest: true,
-          ordprodcod: true
+          ordprodcod: true,
         },
       });
 
@@ -644,15 +644,10 @@ export class ReportsService {
     }
   }
 
-
-
-
-
-  
   calProfitPercentage(ordmon: number | null, ordcos: number | null) {
     if (!ordmon || !ordcos) return { profitPercentage: null, commission: null };
 
-    console.log(ordmon, ordcos);
+    // console.log(ordmon, ordcos);
     const mon: number = ordmon - ordcos;
     const profitPercentage: number = (mon / ordcos) * 100;
 
@@ -660,22 +655,18 @@ export class ReportsService {
     return { profitPercentage, commission };
   }
 
-
-
-
-
   formatDateRes(fechaIso: Date | null): string | null {
     if (!fechaIso) return null;
     const date = new Date(fechaIso);
     const day = date.getDate().toString().padStart(2, "0");
     const month = (date.getMonth() + 1).toString().padStart(2, "0");
     const year = date.getFullYear();
-    return `${year}-${month}-${day}`;
+    return `${day}/${month}/${year}`;
   }
 
   toIsoString(fecha: string | null | undefined): string | null {
     if (!fecha) return null;
-    const [year, month, day] = fecha.split("-");
+    const [year, month, day] = fecha.split("/");
     const date = new Date(
       Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0),
     );

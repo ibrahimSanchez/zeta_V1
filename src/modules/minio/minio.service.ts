@@ -1,11 +1,11 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { S3 } from "aws-sdk";
 import { ConfigService } from "@nestjs/config";
 import { Readable } from "stream";
 import { v4 as uuidv4 } from "uuid";
 
 @Injectable()
-export class MinioService {
+export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
   private s3: S3;
   private readonly bucketName: string;
@@ -21,12 +21,17 @@ export class MinioService {
       s3ForcePathStyle: true,
       signatureVersion: "v4",
     });
+  }
 
-    this.initializeBucket().then(() =>
+  async onModuleInit() {
+    try {
+      await this.initializeBucket();
       this.logger.log(
         `MinIO service initialized with bucket: ${this.bucketName}`,
-      ),
-    );
+      );
+    } catch (error) {
+      this.logger.error(`MinIO is not available: ${error.message}`);
+    }
   }
 
   private async initializeBucket(): Promise<void> {
@@ -48,8 +53,7 @@ export class MinioService {
       this.logger.error(`Error initializing MinIO bucket: ${error.message}`);
       throw error;
     }
-  } 
-
+  }
   //Todo **********************************************************************************************
   async uploadFiles(
     files: Array<Express.Multer.File>,

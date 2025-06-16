@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from "@nestjs/common";
 import { S3 } from "aws-sdk";
 import { ConfigService } from "@nestjs/config";
 import { Readable } from "stream";
@@ -55,10 +60,7 @@ export class MinioService implements OnModuleInit {
     }
   }
   //Todo **********************************************************************************************
-  async uploadFiles(
-    files: Array<Express.Multer.File>,
-    key: string,
-  ): Promise<string[]> {
+  async uploadFiles(files: Array<Express.Multer.File>, key: string) {
     if (!files || files.length === 0) {
       throw new Error("No files provided");
     }
@@ -66,6 +68,8 @@ export class MinioService implements OnModuleInit {
     const uploadedFileNames: string[] = [];
 
     try {
+      
+      await this.deleteFiles(key);
       await Promise.all(
         files.map(async (file) => {
           const { originalname, buffer, mimetype } = file;
@@ -89,7 +93,11 @@ export class MinioService implements OnModuleInit {
       this.logger.log(
         `Uploaded ${files.length} file(s) to bucket "${this.bucketName}"`,
       );
-      return uploadedFileNames;
+      const resUpload = {
+        files: uploadedFileNames,
+      };
+
+      return resUpload;
     } catch (error) {
       this.logger.error(`Failed to upload files: ${error.message}`);
       throw new Error(`Upload failed: ${error.message}`);
@@ -102,6 +110,20 @@ export class MinioService implements OnModuleInit {
     meta: { contentType: string; contentLength: number };
   }> {
     try {
+      try {
+        await this.s3
+          .headObject({
+            Bucket: this.bucketName,
+            Key: key,
+          })
+          .promise();
+      } catch (headError) {
+        if (headError.name === "NotFound") {
+          throw new Error(`The file with key ${key} does not exist in storage`);
+        }
+        throw headError;
+      }
+
       const data = await this.s3
         .getObject({
           Bucket: this.bucketName,
@@ -122,6 +144,11 @@ export class MinioService implements OnModuleInit {
       };
     } catch (error) {
       this.logger.error(`Error retrieving file ${key}: ${error.message}`);
+
+      if (error.message.includes("no existe")) {
+        throw new NotFoundException(error.message);
+      }
+
       throw new Error(`Failed to retrieve file: ${error.message}`);
     }
   }

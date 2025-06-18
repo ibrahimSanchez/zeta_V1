@@ -313,10 +313,6 @@ export class MinioController {
   async getFilesByKeyPrefix(@Param("key") key: string) {
     const files = await this.minioService.getFilesByKeyPrefix(key);
 
-    if (files.length === 0) {
-      throw new NotFoundException("No files found with the specified prefix");
-    }
-
     return {
       count: files.length,
       files: files.map((file) => ({

@@ -68,8 +68,6 @@ export class MinioService implements OnModuleInit {
     const uploadedFileNames: string[] = [];
 
     try {
-      
-      await this.deleteFiles(key);
       await Promise.all(
         files.map(async (file) => {
           const { originalname, buffer, mimetype } = file;
@@ -176,10 +174,8 @@ export class MinioService implements OnModuleInit {
 
       const listedObjects = await this.s3.listObjectsV2(listParams).promise();
 
-      if (!listedObjects.Contents || listedObjects.Contents.length === 0) {
-        this.logger.warn(`No files found with prefix "${key}_"`);
+      if (!listedObjects.Contents || listedObjects.Contents.length === 0)
         return [];
-      }
 
       const validObjects = listedObjects.Contents.filter(
         (obj): obj is { Key: string } => obj.Key !== undefined,

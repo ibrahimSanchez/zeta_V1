@@ -183,6 +183,8 @@ export class OrdersService {
         },
       });
 
+      // console.log(foundOrderProducts);
+
       const prodcods = [...new Set(foundOrderProducts.map((p) => p.prodcod))];
 
       // Obtener información de productos
@@ -253,9 +255,17 @@ export class OrdersService {
         );
       }
 
+      const ordprodcodByOrder = await prisma.ordenesproductos.findFirst({
+        where: { ordcod },
+        select: {
+          ordprodcod: true,
+        },
+      });
+
       // Construir respuesta final
       const OrderResponse = {
         ordcod: foundOrder.ordcod,
+        ordprodcod: ordprodcodByOrder?.ordprodcod,
         ordfec: this.formatDateRes(foundOrder.ordfec),
         pagocod: foundOrder.pagocod,
         pagonom: foundPaymentMethods?.pagonom || null,

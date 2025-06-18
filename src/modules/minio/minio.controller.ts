@@ -188,31 +188,29 @@ export class MinioController {
   async downloadAllFiles(@Param("key") key: string, @Res() res: Response) {
     const files = await this.minioService.getFilesByKeyPrefix(key);
 
-    if (files.length === 0) {
+    if (!files || files.length === 0) {
       throw new NotFoundException("No files found");
     }
 
     const archive = archiver("zip", {
-      zlib: { level: 9 },
+      zlib: { level: 9 }, 
     });
 
     archive.on("error", (err) => {
       throw new Error(`Failed to create ZIP: ${err.message}`);
     });
 
+    const safeKey = key.replace(/[^a-zA-Z0-9-_]/g, "_");
+
     res.set({
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${key}_files.zip"`,
+      "Content-Disposition": `attachment; filename="${safeKey}_files.zip"`,
     });
 
     archive.pipe(res);
 
     for (const file of files) {
-      const filename = file.meta.filename.endsWith(".pdf")
-        ? file.meta.filename
-        : `${file.meta.filename}.pdf`;
-
-      archive.append(file.stream, { name: filename });
+      archive.append(file.stream, { name: file.meta.filename });
     }
 
     await archive.finalize();

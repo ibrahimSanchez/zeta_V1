@@ -214,46 +214,28 @@ export class MinioService implements OnModuleInit {
 
   //Todo **********************************************************************************************
   async deleteFiles(key: string): Promise<void> {
-    if (!key) {
-      throw new Error("Key is required");
-    }
-
-    try {
-      const listParams = {
-        Bucket: this.bucketName,
-        Prefix: `${key}_`,
-      };
-
-      const listedObjects = await this.s3.listObjectsV2(listParams).promise();
-
-      if (!listedObjects.Contents || listedObjects.Contents.length === 0) {
-        this.logger.warn(`No files found with prefix "${key}_"`);
-        return;
-      }
-
-      const objectsToDelete = listedObjects.Contents.map(({ Key }) => ({
-        Key: Key as string,
-      })).filter((obj) => obj.Key !== undefined);
-
-      if (objectsToDelete.length > 0) {
-        await this.s3
-          .deleteObjects({
-            Bucket: this.bucketName,
-            Delete: { Objects: objectsToDelete },
-          })
-          .promise();
-
-        this.logger.log(
-          `Deleted ${objectsToDelete.length} file(s) with prefix "${key}_"`,
-        );
-      }
-
-      if (listedObjects.IsTruncated) {
-        await this.deleteFiles(key);
-      }
-    } catch (error) {
-      this.logger.error(`Error deleting files: ${error.message}`);
-      throw new Error(`Failed to delete files: ${error.message}`);
-    }
+  if (!key) {
+    throw new Error("Key is required");
   }
+
+  try {
+    await this.s3
+      .deleteObject({
+        Bucket: this.bucketName,
+        Key: key,
+      })
+      .promise();
+
+    this.logger.log(`Deleted file with key "${key}"`);
+  } catch (error) {
+    if (error.code === 'NoSuchKey') {
+      this.logger.warn(`No file found with key "${key}"`);
+      return;
+    }
+
+    this.logger.error(`Error deleting file: ${error.message}`);
+    throw new Error(`Failed to delete file: ${error.message}`);
+  }
+}
+
 }
